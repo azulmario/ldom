@@ -1,0 +1,218 @@
+require("RODBC") # Para realizar las conexiones con PostgreSQL
+
+#Municipio 
+mun.php <- function() {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, "SELECT * FROM municipio;")
+  odbcClose(dbconn)
+  d
+}
+
+#Localidad
+loc.php <- function(m = "015") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste("SELECT cve_loc, nombre FROM localidad WHERE cve_mun = '", m,"' ORDER BY nombre;", sep = "") )
+  odbcClose(dbconn)
+  d
+}
+
+#Asentamiento
+#Incorpora el tipo de asentamiento
+col.php <- function(m = "015", l = "0001") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste("SELECT cve_asen, nombre || ' ' || nom_asen as nom_asen FROM colonia as a, cat_tipo_asen as c WHERE ",
+    "(cve_mun = '", m, "') AND (",
+    "(cve_mun_u = '", m, "' AND cve_loc_u = '", l, "')",
+    " OR (cve_mun_r = '", m, "' AND cve_loc_r = '", l, "' AND distancia < 1000)) AND a.cve_tipo_asen = c.cve_tipo_asen ORDER BY nom_asen;", sep = ""))
+  odbcClose(dbconn)
+  d
+}
+
+#Vialidad
+#Incorpora el tipo de vialdad
+cal.php <- function(m = "015", l = "0001") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste("SELECT cve_via, descripcion || ' ' || nom_via as nom_via FROM vialidad as v, cat_vialidad as c WHERE cve_mun = '", m, "' AND cve_loc = '", l, "' AND es_llave AND v.cve_tipo_vial = c.cve_tipo_vial ORDER BY nom_via;", sep = "") )
+  odbcClose(dbconn)
+  d
+}
+
+cal0.php <- function(m = "015", l = "0001") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste("SELECT cve_via, nom_via FROM vialidad WHERE cve_mun = '", m, "' AND cve_loc = '", l, "' AND es_llave ORDER BY nom_via;", sep = "") )
+  odbcClose(dbconn)
+  d
+}
+
+#Número exterior
+#Incorpora calles homónimas
+gn.php <- function(c = "27000101583", n="1") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste(
+  "(SELECT lat, lon FROM geocode1 WHERE cve_via IN ",
+  "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") AND num = '", n, "') UNION ",
+  "(SELECT lat, lon FROM geocode0 WHERE cve_via IN ",
+  "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") AND num = '", n, "') ;", sep = ""))
+  odbcClose(dbconn)
+  d
+}
+
+num.php <- function(c = "27000101583") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste(
+    "(SELECT lat, lon, num FROM geocode1 WHERE cve_via IN ",
+    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") ) UNION ",
+    "(SELECT lat, lon, num FROM geocode0 WHERE cve_via IN ",
+    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") ) ;", sep = ""))
+  odbcClose(dbconn)
+  d
+}
+
+#Entrecalles
+#@todo en vez de regresar claves, regrese los nombres
+ecal.php <- function(c = "015000100024") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste("SELECT via_unica AS cve FROM vialidad WHERE cve_via IN ",
+    "(SELECT cve_via  FROM interseccion WHERE (cve_via0 IN (SELECT cve_via FROM vialidad WHERE via_unica = ", c, ")) UNION ",
+    " SELECT cve_via0 FROM interseccion WHERE (cve_via  IN (SELECT cve_via FROM vialidad WHERE via_unica = ", c, "))) ",
+    "GROUP BY cve ORDER BY cve ASC;", sep = "") )
+  odbcClose(dbconn)
+  d
+}
+
+#fix(d)
+
+### Localiza según información conocida
+
+# Proporciona la localidad (gloc.php)
+# Proporciona el municipio (anterior con d_loc = "0001")
+gloc.php <- function(m = "015", l = "0001") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste("SELECT lat, lon FROM cat_localidad WHERE cve_mun = '", m, "' AND cve_loc = '", l, "';", sep = ""))
+  odbcClose(dbconn)
+  d
+}
+
+# Proporciona la colonia (gcol.php)
+gcol.php <- function(c = "0780") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste(
+    "SELECT lat, lon FROM colonia WHERE cve_asen = '", c, "' ;", sep = ""))
+  odbcClose(dbconn)
+  d
+}
+
+# Proporciona la calle (gcal.php)
+gcal.php <- function(c = 15006700440) {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste(
+    "SELECT lat, lon FROM vialidad WHERE cve_via = ", c, " ;", sep = ""))
+  odbcClose(dbconn)
+  d
+}
+
+# Direcciones almacenadas (gn.php)
+# Contando con entrecalles (gecal.php)
+
+#-------------------------------------------------------------------
+# Zonas metropolitanas
+#Número de registro en el Sistema Urbano Nacional 2010
+#   Clave del municipio
+#       Nombre del municipio
+#             zona metropolitana
+#14	020	León	León
+#14	037	Silao	León
+#15	025	Purísima del Rincón	San Francisco del Rincón
+#15	031	San Francisco del Rincón	San Francisco del Rincón
+#16	021	Moroleón	Moroleón-Uriangato
+#16	041	Uriangato	Moroleón-Uriangato
+
+#Número de registro en el Sistema Urbano Nacional 2010
+# 	Clave de la localidad
+#             Nombre de la localidad
+#                               Conurbación
+#67	110050001	11DTV0016C 	TELESECUNDARIA FEDERAL NUM. 16 	EJIDO CERRO GORDO 	1	RURAL 
+#Apaseo el Grande	Apaseo el Grande
+#67	110050051	San Pedro Tenango el Nuevo	Apaseo el Grande
+#68	110150001	Guanajuato	Guanajuato
+#68	110150067	Marfil	Guanajuato
+#68	110150126	Yerbabuena	Guanajuato
+#69	110170001	Irapuato	Irapuato
+#69	110170059	Arandas	Irapuato
+#69	110170359	Villas de Irapuato	Irapuato
+#70	110280001	Salvatierra	Salvatierra
+#70	110280064	Urireo	Salvatierra
+#71	110330001	San Luis de la Paz	San Luis de la Paz
+#71	110330110	Misión de Chichimecas	San Luis de la Paz
+
+#Número de registro en el Sistema Urbano Nacional 2010
+#     Clave de la localidad
+#               Nombre de la ciudad
+#193	110010001	Abasolo
+#194	110020001	Acámbaro
+#195	110030001	San Miguel de Allende
+#196	110040001	Apaseo El Alto
+#197	110110001	Cortazar
+#198	110140001	Dolores Hidalgo Cuna de la Independencia Nacional
+#199	110180001	Jaral del Progreso
+#200	110260001	Romita
+#201	110270001	Salamanca
+#202	110300001	San Felipe
+#203	110320001	San José Iturbide
+#204	110350001	Juventino Rosas
+#205	110420001	Valle de Santiago
+#206	110460001	Yuriria
+
+conurbación <- function(r_loc.cve_loc = "0150001") {
+  m = substr(r_loc.cve_loc, 1, 3)
+  l = substr(r_loc.cve_loc, 4, 7)
+  
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste(
+    "SELECT cve_mun AS m, cve_loc AS l, nom_loc FROM cat_localidad WHERE sun IN(",
+    "SELECT sun FROM cat_localidad WHERE cve_mun = '", m,"' AND cve_loc = '", l,"') AND ",
+    "NOT(cve_mun = '", m,"' AND cve_loc = '", l,"')",
+    "ORDER BY nom_loc;", sep = "") )
+  odbcClose(dbconn)
+  if(length(d$l) > 0) {
+    d$m <- mapply(str_pad, d$m, 3, pad = "0")
+    d$l <- mapply(str_pad, d$l, 4, pad = "0")
+    x <- mapply(gloc.php, d$m, d$l)
+    d$l <- paste (d$m, d$l, sep = "")
+    lat <- as.numeric(x[1,])
+    lon <- as.numeric(x[2,])
+    d <- data.frame(d, lat, lon)  
+    colnames(d)[3] <- "nombre"
+    d$niv <- 4
+    d$BM <- 1.0
+    d$cve <- d$l
+    d[c(6, 7, 8, 3, 4, 5)]
+  } else{
+    NULL
+  }
+}
+
+# NOTAS
+# Rodbc se instala con
+#> sudo apt-get instal r-cran-rodbc odbc-postgresql
+
+# Configurar conexión con:
+#> more /etc/odbc.ini
+#[ODBC Data Sources]
+#local = Bases de datos local
+#
+#[local]
+#Driver = /usr/lib/x86_64-linux-gnu/odbc/psqlodbcw.so
+#Servername = localhost
+#Port = 15432
+#Database = *
+#Username = **
+#Password = ***
+#Protocol = 9.3.9
+#ReadOnly = 0
+#
+#[ODBC]
+#InstallDir = /usr/lib/x86_64-linux-gnu/
+
+# Iniciar la aplicación con:
+#> odbcinst -q -d
