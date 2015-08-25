@@ -26,7 +26,7 @@ hace_mapa2 <- function(r) {
 
 # Variables de control
 # Para mostrar el mapa durante el diseño, deshabilitar en producción
-map.is.visible = FALSE
+map.is.visible <- FALSE
 
 #-------------------------------------------------------------------
 # Primero identifica el municipio
@@ -238,8 +238,6 @@ entriopia <- function (Tt) {
 
 # Esquema de trabajo con listas tratadas como árboles de desiciones
 identifica <- function (dom, map = FALSE) {
-  map.is.visible <<- FALSE
-  ad <- NULL
   r_mun <- identifica_mun(dom$mun)
   ad <- r_mun
   i <- length(r_mun$cve)
@@ -438,7 +436,6 @@ podar <- function (Ts, map = FALSE) {
 
 # Atomiza un arbol podado
 atomizar <- function (Ts, map = FALSE) {
-  map <- TRUE
   T0 <- Ts[which(Ts$niv == 0), ]
   T1 <- Ts[which(Ts$niv == 1), ]
   T3 <- Ts[which(Ts$niv == 3), ]
@@ -448,18 +445,28 @@ atomizar <- function (Ts, map = FALSE) {
   if(length(T0$BM) > 0 && T0$BM == 0) {
     Ta <- T0[which(T0$BM == 0), ][1, ]
   } else if(length(T1$BM) > 0 && T1$BM == 0) {
-    if(length(T0$BM) > 0 && T0$BM < 0.1) {
-      Ta <- T0[which(T0$BM < 0.1), ][1, ]
+    if(length(T0$BM) > 0 && T0$BM < 0.12) {
+      # Promedia las coordenadas si hay más de 1.
+      Ta <- T0[which(T0$BM < 0.12), ]
+      Ta[1,]$lat <- mean(Ta$lat)
+      Ta[1,]$lon <- mean(Ta$lon)
+      Ta <- Ta[1,]
     } else {
       Ta <- T1[which(T1$BM == 0), ][1, ]
     }
   } else if(length(T3$BM) > 0 && T3$BM == 0) {
     Ta <- T3[which(T3$BM == 0), ][1, ]
   } else if(length(T4$BM) > 0 && T4$BM == 0) {
-    if(length(T0$BM) > 0 && T0$BM < 0.1) {
-      Ta <- T0[which(T0$BM < 0.1), ][1, ]
-    } else if(length(T1$BM) > 0 && T1$BM < 0.1) {
-      Ta <- T1[which(T1$BM < 0.1), ][1, ]
+    if(length(T1$BM) > 0 && T1$BM < 0.1) {
+      if(length(T0$BM) > 0 && T0$BM < 0.12) {
+        # Promedia las coordenadas si hay más de 1.
+        Ta <- T0[which(T0$BM < 0.12), ]
+        Ta[1,]$lat <- mean(Ta$lat)
+        Ta[1,]$lon <- mean(Ta$lon)
+        Ta <- Ta[1,]
+      } else {
+        Ta <- T1[which(T1$BM < 0.1), ][1, ]
+      }
     } else if(length(T3$BM) > 0 && T3$BM < 0.1) {
       Ta <- T3[which(T3$BM < 0.1), ][1, ]
     } else {
@@ -477,6 +484,7 @@ atomizar <- function (Ts, map = FALSE) {
 # Ejecuta el procedimiento sobre el archivo de direcciones y lo
 # guarda en un archivo separardo.
 main <- function (path, sheet = 1, file) {
+  map.is.visible <<- FALSE
   # Ejercicio de prueba masiva
   require(readxl)
   matricula <- read_excel(path, sheet)

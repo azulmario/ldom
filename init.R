@@ -11,15 +11,22 @@
 #! Remover todos los objetos
 rm(list=ls(all=TRUE))
 
+#! Archivo de trabajo
+path = "dilectu/Salamanca_Sec.xlsx"
+require(readxl)
+matricula <- read_excel(path)
+
+n <- 4016
+#n <- 1653
+#n <- 2462
+#n <- sample(1:length(matricula$mun), 1)
+dom <-matricula[n,]
+
 #! Carga los procedimientos
 source("qmaps.R")
 
 # Primer ejemplo
-dom <- list("mun"="Salamanca",
-            "loc"="ZALAMANNCA",
-            "snt"="AMPLIACION RINCONADA SAN JAVIER",
-            "vld"="CALLE DE LA PARRóQUIA",
-            "num"="123")
+dom <- matricula[1086,]
 map.is.visible <- TRUE
 r_mun <- identifica_mun(dom$mun)
 r_loc <- identifica_loc(dom$loc, r_mun$cve, r_mun$BM)
@@ -28,47 +35,23 @@ r_vld <- identifica_vld(dom$vld, r_loc$cve, r_loc$BM)
 r_num <- identifica_num(dom$num, r_vld[1,]$cve, r_vld[1,]$BM)
 
 # Segundo ejemplo
-dom <- list("mun"="Salamanca",
-            "loc"="SALAMANCA",
-            "snt"="AMPLIACION BELLAVISTA",
-            "vld"="CALLE 2",
-            "num"="12")
+dom <- matricula[1572,]
 # Crea el arbol de desición
 Tt <- identifica(dom, TRUE)
 entriopia(Tt)
 # Podar el arbol
 Tt <- podar(Tt, TRUE)
 entriopia(Tt)
-
-# El procedimiento completo se realiza en dos horas.
-rm(list=ls(all=TRUE))
-source("qmaps.R")
-#main(path = "SEGdemo.xlsx", file = "res.xlsx")
-
-path = "dilectu/Salamanca_Sec.xlsx"
-file = "dilectu/res.xlsx"
-sheet = 1
-require(readxl)
-matricula <- read_excel(path, sheet)
-
-n <- length(matricula$mun)
-n <- sample(1:n, 1)
-n <- 2462
-res <- NULL
-dom <-matricula[n,]
-map <- TRUE
-
-# Crea el arbol de desición
-Tt <- identifica(dom, TRUE)
-entriopia(Tt)
-
-# Podar el arbol
-Tt <- podar(Tt, TRUE)
-entriopia(Tt)
-
 # Atomiza el arbol
 Tt <- atomizar(Tt, TRUE)
 entriopia(Tt)
+
+# Tercer ejemplo
+# El procedimiento completo se realiza en dos horas.
+rm(list=ls(all=TRUE))
+source("qmaps.R")
+main(path = "dilectu/Salamanca_Sec.xlsx", file = "dilectu/res.xlsx")
+
 
 ## Bibliografía
 # Mitchell, T.M. Machine Learning, McGraw-Hill, 1997.
