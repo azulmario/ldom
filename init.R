@@ -52,9 +52,13 @@ rm(list=ls(all=TRUE))
 source("qmaps.R")
 main(path = "dilectu/Salamanca_Sec.xlsx", file = "dilectu/res.xlsx")
 
+# @todo Análisis estadístico de los resultados
+#hist(BM[,1])
 
 ## Bibliografía
 # Mitchell, T.M. Machine Learning, McGraw-Hill, 1997.
 # Cap. 3: Decision tree learning
 # Quinlan, Induction Decision Tree, 1979, 1986
 # https://es.wikipedia.org/wiki/%C3%81rbol_de_decisi%C3%B3n_%28modelo_de_clasificaci%C3%B3n_ID3%29
+# Fernando Caparrini, Arboles decision id3, 5 de enero de 2013
+# http://es.slideshare.net/FernandoCaparrini/arboles-decision-id3

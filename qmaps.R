@@ -5,6 +5,7 @@ source("cadenas.R")   # Para la conversión de tipos numéricos a cadenas
 
 #-------------------------------------------------------------------
 # Mostrar el resultado en un mapa
+# Útil para probar y depurar el código
 hace_mapa <- function(lat = -93.65, lng = 42.0285, texto = "", esc = 16) {
     m <- leaflet() %>%
       addProviderTiles("Esri.WorldTopoMap") %>%
@@ -25,7 +26,7 @@ hace_mapa2 <- function(r) {
 # Utiliza la métrica Jaro-Winkler.
 
 # Variables de control
-# Para mostrar el mapa durante el diseño, deshabilitar en producción
+# Para mostrar el mapa durante el diseño, inhabilitar en producción
 map.is.visible <- FALSE
 
 #-------------------------------------------------------------------
@@ -59,17 +60,17 @@ identifica_mun <- function(dom.mun) {
 
 #-------------------------------------------------------------------
 # Segundo identifica la localidad
-# Considerar permuta con colonia, principalmente en zona rural.
+# Nota: Considerar permuta con colonia, principalmente en zona rural
 identifica_loc <- function(dom.loc, r_mun.cve_mun, r_mun.BM) {
   origen <- loc.php(m = str_pad(r_mun.cve_mun, 3, pad = "0"))
   if(length(origen$nombre) > 0  && ! is.na(dom.loc)) {
     origen$nombre <- limpieza(as.character(origen$nombre))
     destino = limpieza(dom.loc)
-    
+
     BM <- stringdistmatrix(origen$nombre, destino, method="jw", p = 0.1)
     BM <- cbind(BM,origen)
     BM <- BM[with(BM, order(BM)), ]
-    #hist(BM[,1])
+
     r_loc <- BM[BM[,1] <= 0.05+min(BM[,1]),]
     m <- mapply(str_pad, r_mun.cve_mun, 3, pad = "0") # str_pad(r_mun.cve_mun, 3, pad = "0")
     l <- mapply(str_pad, r_loc$cve_loc, 4, pad = "0") # str_pad(r_loc.cve_loc, 4, pad = "0"))
@@ -103,11 +104,11 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM) {
 
   if(length(origen$nom_asen) > 0  && ! is.na(dom.snt) && destino != "" && destino != "." && destino != "..") {
     origen$nom_asen <- limpieza(as.character(origen$nom_asen))
-    
+  
     BM <- stringdistmatrix(origen$nom_asen, destino, method="jw", p = 0.1)
     BM <- cbind(BM,origen)
     BM <- BM[with(BM, order(BM)), ]
-    #hist(BM[,1])
+
     r_snt <- BM[BM[,1] <= 0.05+min(BM[,1]),]
     d <- sapply(mapply(str_pad, as.character(r_snt$cve_asen), 4, pad = "0"), gcol.php)
     lat <- as.numeric(d[1,])
@@ -137,7 +138,7 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM) {
   origen0 <- cal0.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
 
   origen <- rbind(origen1, origen0)
-  
+
   destino = limpieza(dom.vld)
   if(length(origen$nom_via) > 0 && ! is.na(dom.vld) && destino != "" && destino != "." && destino != ".." && destino != "...") {
     origen$nom_via <- limpieza(as.character(origen$nom_via))
@@ -145,7 +146,7 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM) {
     BM <- stringdistmatrix(origen$nom_via, destino, method="jw", p = 0.1)
     BM <- cbind(BM,origen)
     BM <- BM[with(BM, order(BM)), ]
-    #hist(BM[,1])
+
     r_vld <- BM[BM[,1] <= 0.05+min(BM[,1]),]
     d <- sapply(r_vld$cve_via, gcal.php)
     lat <- as.numeric(d[1,])
@@ -169,8 +170,8 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM) {
 }
 
 #-------------------------------------------------------------------
-# Quinto identifica el número exterior
-# Si cumple con el requisito de pintar varios puntos!
+# Quinto identifica el número exterior.
+# Cumple con el requisito de pintar varios puntos.
 # Se cambia la comparación string por numeric.
 identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
   origen <- num.php (c = r_vld.cve_via)
@@ -211,10 +212,10 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
 
 # Método ID3 (Induction Decision Tree [Quinlan, 1979, 1986])
 # Técnica de aprendizaje automático
-# Inducción de arboles de decisión
+# Inducción de árboles de decisión
 # Estrategia top-down
 
-# Es un algoritmo voraz para la construcción automática de arboles
+# Es un algoritmo voraz para la construcción automática de árboles
 # de decisión, que selecciona en cada paso el mejor atributo.
 # El mejor es el más discriminante (potencialmente más útil).
 
@@ -222,21 +223,21 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
 # 1- Se selecciona un subconjunto de ejemplos del conjunto
 #    disponible para el nodo i (nivel geográfico).
 # 2- Se construye (induce) el árbol de decisión que permita discriminar
-#    el conjunto de ejemplos para el siguiente nodo i+1 de desición.
+#    el conjunto de ejemplos para el siguiente nodo i+1 de decisión.
 
-# Seleccionar en cada paso el atributo que discrimina más:
-#   Permite reducir el tamaño del árbol de decisión.
+# Seleccionar en cada paso el atributo que discrimina más, así
+# permite reducir el tamaño del árbol de decisión.
 # La selección se hace maximizando una cierta función G, que representa
 # la ganancia de información.
 
-# Entropía:
-# E = sum -p log_2(p)
-# p es la probabilidad de los valores que toman
+# Entropía (aleatoriedad del árbol)
+#   E = sum -p log_2(p)
+# El valor p es la probabilidad de éxito
 entriopia <- function (Tt) {
   sum((Tt$BM - 1)*log2(1 - Tt$BM))
 }
 
-# Esquema de trabajo con listas tratadas como árboles de desiciones
+# Esquema de trabajo con listas tratadas como árboles de decisiones
 identifica <- function (dom, map = FALSE) {
   r_mun <- identifica_mun(dom$mun)
   ad <- r_mun
@@ -263,10 +264,10 @@ identifica <- function (dom, map = FALSE) {
         k <- k - 1
       }
       #
-      # Alternativas de localidad en misma zona conurbana
+      # Alternativas de localidad en misma zona conurbada
       # puede alterar el municipio
       co <- conurbación(r_loc[j,]$cve)
-      # agregar a la lista tales municipios
+      # Agregar a la lista tales municipios
       ad <- rbind(ad, co)
 
       cj <- length(co$cve)
@@ -289,7 +290,7 @@ identifica <- function (dom, map = FALSE) {
         }
         cj <- cj - 1
       }
-      # Continua ...
+      # Continúa ...
       j <- j - 1
     }
     # Intercambia localidad y colonia,
@@ -312,10 +313,10 @@ identifica <- function (dom, map = FALSE) {
           k <- k - 1
         }
         #
-        # Alternativas de localidad en misma zona conurbana
+        # Alternativas de localidad en misma zona conurbada
         # puede alterar el municipio
         co <- conurbación(r_loc[j,]$cve) 
-        # agregar a la lista tales municipios
+        # Agregar a la lista tales municipios
         ad <- rbind(ad, co)
         
         cj <- length(co$cve)
@@ -351,8 +352,16 @@ identifica <- function (dom, map = FALSE) {
 }
 
 #-------------------------------------------------------------------
-#Podar el arbol de desición
-# Sobre cada nivel el más probable
+# Podar el árbol de decisión
+# en cada nivel tener el más probable
+
+# Ganancia de información:
+# Una rama con entriopía cero se convierte en hojas
+# Si no es así, la rama debe seguir dividiéndose,
+# para poder clasificar mejor sus nodos
+# El algoritmo ID3 se ejecuta recursivamente en nodos
+# que no son hojas, hasta que se llegue a nodos - hoja
+# (resultado de la decisión)
 podar <- function (Ts, map = FALSE) {
   # Separa por niveles
   T0 <- Ts[which(Ts$niv == 0), ]
@@ -419,7 +428,7 @@ podar <- function (Ts, map = FALSE) {
   }
   # Pega la información de la mejor opción
   Us <- rbind(M0, R01, R04, R05, M1, R14, R15, M3, M4, R45, M5)
-  # Eliminar renglones con $lat = NA o $lon = NA
+  # Eliminar renglones sin coordenadas
   Us <- Us[which(! is.na(Us$lat)), ]
   Us <- Us[which(! is.na(Us$lon)), ]
 
@@ -434,7 +443,8 @@ podar <- function (Ts, map = FALSE) {
   Us
 }
 
-# Atomiza un arbol podado
+# Atomiza un árbol podado
+# Obtiene la hoja más probable
 atomizar <- function (Ts, map = FALSE) {
   T0 <- Ts[which(Ts$niv == 0), ]
   T1 <- Ts[which(Ts$niv == 1), ]
@@ -446,7 +456,7 @@ atomizar <- function (Ts, map = FALSE) {
     Ta <- T0[which(T0$BM == 0), ][1, ]
   } else if(length(T1$BM) > 0 && T1$BM == 0) {
     if(length(T0$BM) > 0 && T0$BM < 0.12) {
-      # Promedia las coordenadas si hay más de 1.
+      # Promedia las coordenadas si hay más de 1
       Ta <- T0[which(T0$BM < 0.12), ]
       Ta[1,]$lat <- mean(Ta$lat)
       Ta[1,]$lon <- mean(Ta$lon)
@@ -456,10 +466,9 @@ atomizar <- function (Ts, map = FALSE) {
     }
   } else if(length(T3$BM) > 0 && T3$BM == 0) {
     Ta <- T3[which(T3$BM == 0), ][1, ]
-  } else if(length(T4$BM) > 0 && T4$BM == 0) {
+  } else if(length(T4$BM) > 0 && T4$BM < 0.1) {
     if(length(T1$BM) > 0 && T1$BM < 0.1) {
       if(length(T0$BM) > 0 && T0$BM < 0.12) {
-        # Promedia las coordenadas si hay más de 1.
         Ta <- T0[which(T0$BM < 0.12), ]
         Ta[1,]$lat <- mean(Ta$lat)
         Ta[1,]$lon <- mean(Ta$lon)
@@ -470,7 +479,7 @@ atomizar <- function (Ts, map = FALSE) {
     } else if(length(T3$BM) > 0 && T3$BM < 0.1) {
       Ta <- T3[which(T3$BM < 0.1), ][1, ]
     } else {
-      Ta <- T4[which(T4$BM == 0), ][1, ]
+      Ta <- T4[which(T4$BM < 0.1), ][1, ]
     }
   }
   if(map)
@@ -479,26 +488,33 @@ atomizar <- function (Ts, map = FALSE) {
   Ta
 }
 
-
 #-------------------------------------------------------------------
 # Ejecuta el procedimiento sobre el archivo de direcciones y lo
-# guarda en un archivo separardo.
+# guarda en un archivo separado.
 main <- function (path, sheet = 1, file) {
   map.is.visible <<- FALSE
-  # Ejercicio de prueba masiva
+  # Procesamiento por lote
   require(readxl)
   matricula <- read_excel(path, sheet)
 
   n <- length(matricula$mun)
   res <- NULL
+  err <- c()
   while(n > 0) {
+    # Procesa la dirección y obtiene la coordenada geográfica probable
     c <- atomizar(podar(identifica(matricula[n,])))
-    c$n <- n #Agrega el número de renglón
-    res <- rbind(res, c)
+    if(is.null(c)) {
+      err <- c(n, err) # No tuvo éxito
+    } else {
+      c$n <- n #Agrega el número de renglón
+      res <- rbind(res, c)
+    }
     n <- n - 1
   }
   # Intercambia el orden de las columnas
-  res <- res[c(7, 1, 2, 3, 4, 5, 6)]
-  # Guarda en el sentido inverso en el que fué generado (orden lógico)
+  res <- res[c(7, 1:6)]
+  # Guarda en el sentido inverso en el que fue generado (orden lógico)
   openxlsx::write.xlsx(res[c(length(res$n):1),], file)
+  
+  err
 }
