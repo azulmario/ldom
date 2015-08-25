@@ -232,10 +232,14 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
 # Entropía:
 # E = sum -p log_2(p)
 # p es la probabilidad de los valores que toman
+entriopia <- function (Tt) {
+  sum((Tt$BM - 1)*log2(1 - Tt$BM))
+}
 
 # Esquema de trabajo con listas tratadas como árboles de desiciones
 identifica <- function (dom, map = FALSE) {
   map.is.visible <<- FALSE
+  ad <- NULL
   r_mun <- identifica_mun(dom$mun)
   ad <- r_mun
   i <- length(r_mun$cve)
@@ -244,7 +248,13 @@ identifica <- function (dom, map = FALSE) {
     ad <- rbind(ad, r_loc)
     j <- length(r_loc$cve)
     while(j > 0) {
-      r_snt <- identifica_snt(dom$snt, r_loc[j,]$cve, r_loc[j,]$BM)
+      dom.snt <- dom$snt
+      r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM)
+      ad <- rbind(ad, r_snt)
+      if("tsnt" %in% colnames(dom)) {
+        dom.snt <- paste(dom$tsnt, dom.snt)
+      }
+      r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM)
       ad <- rbind(ad, r_snt)
       r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM)
       ad <- rbind(ad, r_vld)
@@ -263,7 +273,13 @@ identifica <- function (dom, map = FALSE) {
 
       cj <- length(co$cve)
       while(cj > 0) {
-        r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM)
+        dom.snt <- dom$snt
+        r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM)
+        ad <- rbind(ad, r_snt)
+        if("tsnt" %in% colnames(dom)) {
+          dom.snt <- paste(dom$tsnt, dom.snt)
+        }
+        r_snt <- identifica_snt(dom.snt, co[cj,]$cve, r_loc[j,]$BM)
         ad <- rbind(ad, r_snt)
         r_vld <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM)
         ad <- rbind(ad, r_vld)
@@ -306,7 +322,13 @@ identifica <- function (dom, map = FALSE) {
         
         cj <- length(co$cve)
         while(cj > 0) {
-          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM)
+          dom.snt <- dom$snt
+          r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM)
+          ad <- rbind(ad, r_snt)
+          if("tsnt" %in% colnames(dom)) {
+            dom.snt <- paste(dom$tsnt, dom.snt)
+          }
+          r_snt <- identifica_snt(dom.snt, co[cj,]$cve, r_loc[j,]$BM)
           ad <- rbind(ad, r_snt)
           r_vld <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM)
           ad <- rbind(ad, r_vld)
@@ -325,15 +347,15 @@ identifica <- function (dom, map = FALSE) {
     #
     i <- i - 1
   }
-  if(map) hace_mapa2(ad)
+  if(map)
+    hace_mapa2(ad)
   ad[c(6, 1, 2, 3, 4, 5)]
 }
 
 #-------------------------------------------------------------------
 #Podar el arbol de desición
 # Sobre cada nivel el más probable
-
-podar <- function (Ts) {
+podar <- function (Ts, map = FALSE) {
   # Separa por niveles
   T0 <- Ts[which(Ts$niv == 0), ]
   T1 <- Ts[which(Ts$niv == 1), ]
@@ -381,7 +403,7 @@ podar <- function (Ts) {
     R05 <- rbind(R05, T5[ which( T5$cve == substr(C0[i], 1, 2) ), ] )
     i <- i -1
   }
-  
+
   i <- length(C1)
   R14 <- NULL
   R15 <- NULL
@@ -390,7 +412,7 @@ podar <- function (Ts) {
     R15 <- rbind(R05, T5[ which( T5$cve == substr(C1[i], 1, 2) ), ] )
     i <- i -1
   }
-  
+
   i <- length(C4)
   R45 <- NULL
   while(i > 0) {
@@ -404,11 +426,52 @@ podar <- function (Ts) {
   Us <- Us[which(! is.na(Us$lon)), ]
 
   # Elimina en nivel cero, si no hay ninguna probabilidad de éxito
-  Us <- Us[which(Us$niv != 0) && which(Us$BM != 1), ]
-  
+  Us <- Us[which(!(Us$niv == 0 & Us$BM == 1)), ]
+
   # Eliminar renglones repetidos 
-  unique(Us)
+  Us <- unique(Us)
+  
+  if(map)
+    hace_mapa2(Us)
+  Us
 }
+
+# Atomiza un arbol podado
+atomizar <- function (Ts, map = FALSE) {
+  map <- TRUE
+  T0 <- Ts[which(Ts$niv == 0), ]
+  T1 <- Ts[which(Ts$niv == 1), ]
+  T3 <- Ts[which(Ts$niv == 3), ]
+  T4 <- Ts[which(Ts$niv == 4), ]
+  T5 <- Ts[which(Ts$niv == 5), ]
+  Ta <- NULL
+  if(length(T0$BM) > 0 && T0$BM == 0) {
+    Ta <- T0[which(T0$BM == 0), ][1, ]
+  } else if(length(T1$BM) > 0 && T1$BM == 0) {
+    if(length(T0$BM) > 0 && T0$BM < 0.1) {
+      Ta <- T0[which(T0$BM < 0.1), ][1, ]
+    } else {
+      Ta <- T1[which(T1$BM == 0), ][1, ]
+    }
+  } else if(length(T3$BM) > 0 && T3$BM == 0) {
+    Ta <- T3[which(T3$BM == 0), ][1, ]
+  } else if(length(T4$BM) > 0 && T4$BM == 0) {
+    if(length(T0$BM) > 0 && T0$BM < 0.1) {
+      Ta <- T0[which(T0$BM < 0.1), ][1, ]
+    } else if(length(T1$BM) > 0 && T1$BM < 0.1) {
+      Ta <- T1[which(T1$BM < 0.1), ][1, ]
+    } else if(length(T3$BM) > 0 && T3$BM < 0.1) {
+      Ta <- T3[which(T3$BM < 0.1), ][1, ]
+    } else {
+      Ta <- T4[which(T4$BM == 0), ][1, ]
+    }
+  }
+  if(map)
+    hace_mapa2(Ta)
+  
+  Ta
+}
+
 
 #-------------------------------------------------------------------
 # Ejecuta el procedimiento sobre el archivo de direcciones y lo
@@ -417,11 +480,11 @@ main <- function (path, sheet = 1, file) {
   # Ejercicio de prueba masiva
   require(readxl)
   matricula <- read_excel(path, sheet)
-  
+
   n <- length(matricula$mun)
   res <- NULL
   while(n > 0) {
-    c <- podar(identifica(matricula[n,]))
+    c <- atomizar(podar(identifica(matricula[n,])))
     c$n <- n #Agrega el número de renglón
     res <- rbind(res, c)
     n <- n - 1

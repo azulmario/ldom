@@ -34,16 +34,41 @@ dom <- list("mun"="Salamanca",
             "vld"="CALLE 2",
             "num"="12")
 # Crea el arbol de desición
-Tt <- identifica(dom)
+Tt <- identifica(dom, TRUE)
 entriopia(Tt)
 # Podar el arbol
-Tt <- podar(Tt)
+Tt <- podar(Tt, TRUE)
 entriopia(Tt)
 
 # El procedimiento completo se realiza en dos horas.
 rm(list=ls(all=TRUE))
 source("qmaps.R")
-main(path = "SEGdemo.xlsx", file = "res.xlsx")
+#main(path = "SEGdemo.xlsx", file = "res.xlsx")
+
+path = "dilectu/Salamanca_Sec.xlsx"
+file = "dilectu/res.xlsx"
+sheet = 1
+require(readxl)
+matricula <- read_excel(path, sheet)
+
+n <- length(matricula$mun)
+n <- sample(1:n, 1)
+n <- 2462
+res <- NULL
+dom <-matricula[n,]
+map <- TRUE
+
+# Crea el arbol de desición
+Tt <- identifica(dom, TRUE)
+entriopia(Tt)
+
+# Podar el arbol
+Tt <- podar(Tt, TRUE)
+entriopia(Tt)
+
+# Atomiza el arbol
+Tt <- atomizar(Tt, TRUE)
+entriopia(Tt)
 
 ## Bibliografía
 # Mitchell, T.M. Machine Learning, McGraw-Hill, 1997.
