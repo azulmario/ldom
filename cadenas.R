@@ -1,5 +1,3 @@
-require("stringr") # Para la conversión de tipos numéricos a cadenas
-
 # Limpieza de textos
 limpieza <- function(tw = "") {
   tw <- toupper(tw)

@@ -1,16 +1,17 @@
-require(leaflet)      # Componentes para imprimir el mapa
-source("conectadb.R") # Para obtener la información de los servidores
+require("leaflet")    # Componentes para imprimir el mapa
+require("stringr")    # Para la conversión de tipos numéricos a cadenas
 require("stringdist") # Para las comparaciones de nombres topográficos
 source("cadenas.R")   # Para la conversión de tipos numéricos a cadenas
+source("conectadb.R") # Para obtener la información de los servidores
 
 #-------------------------------------------------------------------
 # Mostrar el resultado en un mapa
 # Útil para probar y depurar el código
 hace_mapa <- function(lat = -93.65, lng = 42.0285, texto = "", esc = 16) {
-    m <- leaflet() %>%
-      addProviderTiles("Esri.WorldTopoMap") %>%
-      setView(lng, lat, zoom = esc) %>%
-      addMarkers(lng=lng, lat=lat, popup=texto)
+  m <- leaflet() %>%
+    addProviderTiles("Esri.WorldTopoMap") %>%
+    setView(lng, lat, zoom = esc) %>%
+    addMarkers(lng=lng, lat=lat, popup=texto)
   print(m)
 }
 
@@ -35,11 +36,11 @@ identifica_mun <- function(dom.mun) {
   origen <- mun.php()
   origen$nombre <- limpieza(as.character(origen$nombre))
   destino = limpieza(dom.mun)
-  
+
   BM <- stringdistmatrix(origen$nombre, destino, method="jw", p = 0.1)
   BM <- cbind(BM,origen)
   BM <- BM[with(BM, order(BM)), ]
-  #hist(BM[,1])
+
   r_mun <- BM[BM[,1] <= 0.05+min(BM[,1]),]
   m <- mapply(str_pad, r_mun$cve_mun, 3, pad = "0")
   d <- mapply(gloc.php, m)
@@ -182,7 +183,7 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
     BM <- 2*pnorm(sqrt(2)*(abs(origen.num-destino)/50))-1
     BM <- cbind(BM, origen)
     BM <- BM[with(BM, order(BM)), ]
-    #hist(BM[,1])
+
     r_num <- BM[BM[,1] <= 0.05+min(BM[,1]),]
     r_num <- cbind(r_vld.cve_via, r_num)
     r_num$num <- as.character(r_num$num)
@@ -371,6 +372,7 @@ podar <- function (Ts, map = FALSE) {
   T5 <- Ts[which(Ts$niv == 5), ]
   # Elige la mejor opción de cada nivel
   if(length(T0$BM) > 0) {
+    # @error: ningún argumento finito para min; retornando Inf
     M0 <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)), ]
   } else {
     M0 <- NULL
@@ -514,7 +516,8 @@ main <- function (path, sheet = 1, file) {
   # Intercambia el orden de las columnas
   res <- res[c(7, 1:6)]
   # Guarda en el sentido inverso en el que fue generado (orden lógico)
-  openxlsx::write.xlsx(res[c(length(res$n):1),], file)
+  require(openxlsx)
+  write.xlsx(res[c(length(res$n):1),], file)
   
   err
 }

@@ -19,7 +19,7 @@ matricula <- read_excel(path)
 n <- 4016
 #n <- 1653
 #n <- 2462
-#n <- sample(1:length(matricula$mun), 1)
+n <- sample(1:length(matricula$mun), 1)
 dom <-matricula[n,]
 
 #! Carga los procedimientos
