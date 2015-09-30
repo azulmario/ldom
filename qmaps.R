@@ -1,41 +1,36 @@
-require("leaflet")    # Componentes para imprimir el mapa
-require("stringr")    # Para la conversión de tipos numéricos a cadenas
-require("stringdist") # Para las comparaciones de nombres topográficos
+library(stringr)    # Para la conversión de tipos numéricos a cadenas
+library(stringdist) # Para las comparaciones de nombres topográficos
 source("cadenas.R")   # Para la conversión de tipos numéricos a cadenas
 source("conectadb.R") # Para obtener la información de los servidores
+
+# Variables de control
+# Para mostrar el mapa durante el diseño, inhabilitar en producción
+map.is.visible <<- FALSE
+mapa <<- NULL
 
 #-------------------------------------------------------------------
 # Mostrar el resultado en un mapa
 # Útil para probar y depurar el código
-hace_mapa <- function(lat = -93.65, lng = 42.0285, texto = "", esc = 16) {
-  m <- leaflet() %>%
-    addProviderTiles("Esri.WorldTopoMap") %>%
-    setView(lng, lat, zoom = esc) %>%
-    addMarkers(lng=lng, lat=lat, popup=texto)
-  print(m)
-}
-
-hace_mapa2 <- function(r) {
-  m <- leaflet(data = r) %>%
+hace_mapa <- function(r, r_zoom = NULL) {
+  require(leaflet)
+  mapa <<- leaflet(data = r) %>%
     addProviderTiles("Esri.WorldTopoMap") %>%
     addMarkers(~lon[], ~lat[], popup=~nombre)
-  print(m)
+  if(!is.null(r_zoom) ) {
+    mapa <<- setView(mapa, lng = r$lon[1], lat = r$lat[1], zoom = r_zoom)
+  }
+  print(mapa)
 }
 
-#-------------------------------------------------------------------
 # Para realizar las búsquedas de cada componente de la dirección
 # Utiliza la métrica Jaro-Winkler.
-
-# Variables de control
-# Para mostrar el mapa durante el diseño, inhabilitar en producción
-map.is.visible <- FALSE
 
 #-------------------------------------------------------------------
 # Primero identifica el municipio
 identifica_mun <- function(dom.mun) {
   origen <- mun.php()
   origen$nombre <- limpieza(as.character(origen$nombre))
-  destino = limpieza(dom.mun)
+  destino <- limpieza(dom.mun)
 
   BM <- stringdistmatrix(origen$nombre, destino, method="jw", p = 0.1)
   BM <- cbind(BM,origen)
@@ -47,14 +42,10 @@ identifica_mun <- function(dom.mun) {
   lat <- as.numeric(d[1,])
   lon <- as.numeric(d[2,])
   r_mun <- data.frame(r_mun, lat, lon)  
-  if(map.is.visible) {
-    m <- leaflet(data = r_mun) %>%
-      addProviderTiles("Esri.WorldTopoMap") %>%
-      addMarkers(~lon[], ~lat[], popup=~nombre)
-    m <- setView(m, lng = r_mun$lon[1], lat = r_mun$lat[1], zoom = 11)
-    print(m)
-  }
   colnames(r_mun)[2] <- "cve"
+  if(map.is.visible) {
+    hace_mapa(r_mun, 11)
+  }
   r_mun$niv <- 5
   r_mun
 }
@@ -79,15 +70,11 @@ identifica_loc <- function(dom.loc, r_mun.cve_mun, r_mun.BM) {
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
     r_loc <- data.frame(r_loc, lat, lon)  
-    if(map.is.visible & length(lat) > 0) {
-      mapa <- leaflet(data = r_loc) %>%
-        addProviderTiles("Esri.WorldTopoMap") %>%
-        addMarkers(~lon[], ~lat[], popup=~nombre)
-      mapa <- setView(mapa, lng = lon[1], lat = lat[1], zoom = 13)
-      print(mapa)
-    }
     colnames(r_loc)[2] <- "cve"
     colnames(r_loc)[3] <- "nombre"
+    if(map.is.visible & length(lat) > 0) {
+      hace_mapa(r_loc, 13)
+    }
     r_loc$niv <- 4
     r_loc$BM <- 1.0 - (1.0 - r_loc$BM) * (1.0 - r_mun.BM)
     r_loc$cve <- paste (m, l, sep = "")
@@ -115,15 +102,11 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM) {
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
     r_snt <- data.frame(r_snt, lat, lon)
-    if(map.is.visible & length(lat) > 0) {
-      mapa <- leaflet(data = r_snt) %>%
-        addProviderTiles("Esri.WorldTopoMap") %>%
-        addMarkers(~lon[], ~lat[], popup=~nom_asen)
-      mapa <- setView(mapa, lng = lon[1], lat = lat[1], zoom = 15)
-      print(mapa)
-    }
     colnames(r_snt)[2] <- "cve"
     colnames(r_snt)[3] <- "nombre"
+    if(map.is.visible & length(lat) > 0) {
+      hace_mapa(r_snt, 15)
+    }
     r_snt$niv <- 3
     r_snt$BM <- 1.0 - (1.0 - r_snt$BM) * (1.0 - r_loc.BM)
     r_snt
@@ -135,10 +118,7 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM) {
 #-------------------------------------------------------------------
 # Cuarto identifica la vialidad
 identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM) {
-  origen1 <- cal.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
-  origen0 <- cal0.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
-
-  origen <- rbind(origen1, origen0)
+  origen <- cal.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
 
   destino = limpieza(dom.vld)
   if(length(origen$nom_via) > 0 && ! is.na(dom.vld) && destino != "" && destino != "." && destino != ".." && destino != "...") {
@@ -153,16 +133,12 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM) {
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
     r_vld <- data.frame(r_vld, lat, lon)
-    if(map.is.visible & length(lat) > 0) {
-      mapa <- leaflet(data = r_vld) %>%
-        addProviderTiles("Esri.WorldTopoMap") %>%
-        addMarkers(~lon[], ~lat[], popup=~nom_via)
-      mapa <- setView(mapa, lng = lon[1], lat = lat[1], zoom = 17)
-      print(mapa)
-    }
     colnames(r_vld)[2] <- "cve"
     colnames(r_vld)[3] <- "nombre"
-    r_vld$niv <- 1
+    if(map.is.visible & length(lat) > 0) {
+      hace_mapa(r_vld, 17)
+    }
+    r_vld$niv <- 2
     r_vld$BM <- 1.0 - (1.0 - r_vld$BM) * (1.0 - r_loc.BM)
     r_vld
   } else {
@@ -171,7 +147,38 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM) {
 }
 
 #-------------------------------------------------------------------
-# Quinto identifica el número exterior.
+# Quinto identifica la entrecalle
+identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
+  origen <- ecal.php(c = r_vld.cve_via)
+
+  destino = limpieza(dom.ref)
+  if(length(origen$nom_via) > 0 && ! is.na(dom.ref) && destino != "" && destino != "." && destino != ".." && destino != "...") {
+    origen$nom_via <- limpieza(as.character(origen$nom_via))
+
+    BM <- stringdistmatrix(origen$nom_via, destino, method="jw", p = 0.1)
+    BM <- cbind(BM,origen)
+    BM <- BM[with(BM, order(BM)), ]
+
+    r_ref <- BM[BM[,1] <= 0.05+min(BM[,1]),]
+    d <- sapply(r_ref$cve, gecal.php, e = r_vld.cve_via) # Obtiene las coordenadas de la esquina
+    lat <- as.numeric(d[1,])
+    lon <- as.numeric(d[2,])
+    r_ref <- data.frame(r_ref, lat, lon)
+    colnames(r_ref)[2] <- "cve"
+    colnames(r_ref)[3] <- "nombre"
+    if(map.is.visible & length(lat) > 0) {
+      hace_mapa(r_ref, 17)
+    }
+    r_ref$niv <- 1
+    r_ref$BM <- 1.0 - (1.0 - r_ref$BM) * (1.0 - r_vld.BM)
+    r_ref
+  } else {
+    NULL
+  }
+}
+
+#-------------------------------------------------------------------
+# Sexto identifica el número exterior.
 # Cumple con el requisito de pintar varios puntos.
 # Se cambia la comparación string por numeric.
 identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
@@ -187,15 +194,11 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
     r_num <- BM[BM[,1] <= 0.05+min(BM[,1]),]
     r_num <- cbind(r_vld.cve_via, r_num)
     r_num$num <- as.character(r_num$num)
-    if(map.is.visible & length(r_num$lat) > 0) {
-      mapa <- leaflet(data = r_num) %>%
-        addProviderTiles("Esri.WorldTopoMap") %>%
-        addMarkers(~lon[], ~lat[], popup=~num)
-      mapa <- setView(mapa, lng = r_num$lon[1], lat = r_num$lat[1], zoom = 18)
-      print(mapa)
-    }
     colnames(r_num)[1] <- "cve"
     colnames(r_num)[5] <- "nombre"
+    if(map.is.visible & length(r_num$lat) > 0) {
+      hace_mapa(r_num, 18)
+    }
     r_num$niv <- 0
     r_num$BM <- 1.0 - (1.0 - r_num$BM) * (1.0 - r_vld.BM)
     r_num[c(2, 1, 5, 3, 4, 6)]
@@ -203,10 +206,6 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
     NULL
   }
 }
-
-#-------------------------------------------------------------------
-# Sexto identifica la entrecalle
-# @TODO
 
 #-------------------------------------------------------------------
 # Identifica el arbol de desición
@@ -240,6 +239,21 @@ entriopia <- function (Tt) {
 
 # Esquema de trabajo con listas tratadas como árboles de decisiones
 identifica <- function (dom, map = FALSE) {
+  # Identifica las abreviaciones y las sustituye
+  dom$mun <- abrev_loc(dom$mun)
+  dom$loc <- abrev_loc(dom$loc)
+  dom$snt <- abrev_snt(dom$snt)
+  dom$vld <- abrev_vld(dom$vld)
+  # Si no hay número exterior, verifica si no está incluido en la vialidad,
+  # cuando se especifica sin número no aplica.
+  if(!"num" %in% colnames(dom) || (limpieza0(dom$num) == "" && !numero_SN(dom$num))) {
+    q <- calle_partir(dom$vld)
+    if(!is.na(q[1])) {
+      dom$vld <- q[1]
+      dom$num <- q[2]
+    }
+  }
+
   r_mun <- identifica_mun(dom$mun)
   ad <- r_mun
   i <- length(r_mun$cve)
@@ -256,14 +270,26 @@ identifica <- function (dom, map = FALSE) {
       }
       r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM)
       ad <- rbind(ad, r_snt)
+
       r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM)
       ad <- rbind(ad, r_vld)
       k <- length(r_vld$cve)
       while(k > 0) {
-        r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
-        ad <- rbind(ad, r_num)
+        if("ref1" %in% colnames(dom)) {
+          r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+          ad <- rbind(ad, r_ref1)
+        }
+        if("ref2" %in% colnames(dom)) {
+          r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+          ad <- rbind(ad, r_ref2)
+        }
+        if("num" %in% colnames(dom)) {
+          r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+          ad <- rbind(ad, r_num)
+        }
         k <- k - 1
       }
+      
       #
       # Alternativas de localidad en misma zona conurbada
       # puede alterar el municipio
@@ -285,8 +311,18 @@ identifica <- function (dom, map = FALSE) {
         ad <- rbind(ad, r_vld)
         k <- length(r_vld$cve)
         while(k > 0) {
-          r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
-          ad <- rbind(ad, r_num)
+          if("ref1" %in% colnames(dom)) {
+            r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+            ad <- rbind(ad, r_ref1)
+          }
+          if("ref2" %in% colnames(dom)) {
+            r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+            ad <- rbind(ad, r_ref2)
+          }
+          if("num" %in% colnames(dom)) {
+            r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+            ad <- rbind(ad, r_num)
+          }
           k <- k - 1
         }
         cj <- cj - 1
@@ -309,8 +345,18 @@ identifica <- function (dom, map = FALSE) {
         ad <- rbind(ad, r_vld)
         k <- length(r_vld$cve)
         while(k > 0) {
-          r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
-          ad <- rbind(ad, r_num)
+          if("ref1" %in% colnames(dom)) {
+            r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+            ad <- rbind(ad, r_ref1)
+          }
+          if("ref2" %in% colnames(dom)) {
+            r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+            ad <- rbind(ad, r_ref2)
+          }
+          if("num" %in% colnames(dom)) {
+            r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+            ad <- rbind(ad, r_num)
+          }
           k <- k - 1
         }
         #
@@ -334,8 +380,18 @@ identifica <- function (dom, map = FALSE) {
           ad <- rbind(ad, r_vld)
           k <- length(r_vld$cve)
           while(k > 0) {
-            r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
-            ad <- rbind(ad, r_num)
+            if("ref1" %in% colnames(dom)) {
+              r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+              ad <- rbind(ad, r_ref1)
+            }
+            if("ref2" %in% colnames(dom)) {
+              r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+              ad <- rbind(ad, r_ref2)
+            }
+            if("num" %in% colnames(dom)) {
+              r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+              ad <- rbind(ad, r_num)
+            }
             k <- k - 1
           }
           cj <- cj - 1
@@ -348,7 +404,7 @@ identifica <- function (dom, map = FALSE) {
     i <- i - 1
   }
   if(map)
-    hace_mapa2(ad)
+    hace_mapa(ad)
   ad[c(6, 1, 2, 3, 4, 5)]
 }
 
@@ -367,6 +423,7 @@ podar <- function (Ts, map = FALSE) {
   # Separa por niveles
   T0 <- Ts[which(Ts$niv == 0), ]
   T1 <- Ts[which(Ts$niv == 1), ]
+  T2 <- Ts[which(Ts$niv == 2), ]
   T3 <- Ts[which(Ts$niv == 3), ]
   T4 <- Ts[which(Ts$niv == 4), ]
   T5 <- Ts[which(Ts$niv == 5), ]
@@ -381,6 +438,11 @@ podar <- function (Ts, map = FALSE) {
     M1 <- T1[which(T1$BM == min(T1$BM, na.rm = TRUE)), ]
   } else {
     M1 <- NULL
+  }
+  if(length(T2$BM) > 0) {
+    M2 <- T2[which(T2$BM == min(T2$BM, na.rm = TRUE)), ]
+  } else {
+    M2 <- NULL
   }
   if(length(T3$BM) > 0) {
     M3 <- T3[which(T3$BM == min(T3$BM, na.rm = TRUE)), ]
@@ -399,26 +461,26 @@ podar <- function (Ts, map = FALSE) {
   }
   # Asegurar que se incluya la rama completa
   C0 <- unique(M0$cve)
-  C1 <- unique(M1$cve)
+  C2 <- unique(M2$cve)
   C4 <- unique(M4$cve)
   
   i <- length(C0)
-  R01 <- NULL
+  R02 <- NULL
   R04 <- NULL
   R05 <- NULL
   while(i > 0) {
-    R01 <- rbind(R01, T1[ which( T1$cve == C0[i] ), ] )
+    R02 <- rbind(R02, T2[ which( T2$cve == C0[i] ), ] )
     R04 <- rbind(R04, T4[ which( substr(T4$cve, 2, 7) == substr(C0[i], 1, 6) ), ] )
     R05 <- rbind(R05, T5[ which( T5$cve == substr(C0[i], 1, 2) ), ] )
     i <- i -1
   }
 
-  i <- length(C1)
-  R14 <- NULL
-  R15 <- NULL
+  i <- length(C2)
+  R24 <- NULL
+  R25 <- NULL
   while(i > 0) {
-    R14 <- rbind(R04, T4[ which( substr(T4$cve, 2, 7) == substr(C1[i], 1, 6) ), ] )
-    R15 <- rbind(R05, T5[ which( T5$cve == substr(C1[i], 1, 2) ), ] )
+    R24 <- rbind(R04, T4[ which( substr(T4$cve, 2, 7) == substr(C2[i], 1, 6) ), ] )
+    R25 <- rbind(R05, T5[ which( T5$cve == substr(C2[i], 1, 2) ), ] )
     i <- i -1
   }
 
@@ -429,7 +491,7 @@ podar <- function (Ts, map = FALSE) {
     i <- i -1
   }
   # Pega la información de la mejor opción
-  Us <- rbind(M0, R01, R04, R05, M1, R14, R15, M3, M4, R45, M5)
+  Us <- rbind(M0, M1, R02, R04, R05, M2, R24, R25, M3, M4, R45, M5)
   # Eliminar renglones sin coordenadas
   Us <- Us[which(! is.na(Us$lat)), ]
   Us <- Us[which(! is.na(Us$lon)), ]
@@ -441,7 +503,7 @@ podar <- function (Ts, map = FALSE) {
   Us <- unique(Us)
   
   if(map)
-    hace_mapa2(Us)
+    hace_mapa(Us)
   Us
 }
 
@@ -450,6 +512,7 @@ podar <- function (Ts, map = FALSE) {
 atomizar <- function (Ts, map = FALSE) {
   T0 <- Ts[which(Ts$niv == 0), ]
   T1 <- Ts[which(Ts$niv == 1), ]
+  T2 <- Ts[which(Ts$niv == 2), ]
   T3 <- Ts[which(Ts$niv == 3), ]
   T4 <- Ts[which(Ts$niv == 4), ]
   T5 <- Ts[which(Ts$niv == 5), ]
@@ -457,6 +520,13 @@ atomizar <- function (Ts, map = FALSE) {
   if(length(T0$BM) > 0 && T0$BM == 0) {
     Ta <- T0[which(T0$BM == 0), ][1, ]
   } else if(length(T1$BM) > 0 && T1$BM == 0) {
+    # Promedia las coordenadas si proporciona las dos entrecalles correctamente
+    Ta <- T1[which(T1$BM == 0), ]
+    Ta[1,]$lat <- mean(Ta$lat)
+    Ta[1,]$lon <- mean(Ta$lon)
+    Ta <- Ta[1,]
+    
+  } else if(length(T2$BM) > 0 && T2$BM == 0) {
     if(length(T0$BM) > 0 && T0$BM < 0.12) {
       # Promedia las coordenadas si hay más de 1
       Ta <- T0[which(T0$BM < 0.12), ]
@@ -464,19 +534,19 @@ atomizar <- function (Ts, map = FALSE) {
       Ta[1,]$lon <- mean(Ta$lon)
       Ta <- Ta[1,]
     } else {
-      Ta <- T1[which(T1$BM == 0), ][1, ]
+      Ta <- T2[which(T2$BM == 0), ][1, ]
     }
   } else if(length(T3$BM) > 0 && T3$BM == 0) {
     Ta <- T3[which(T3$BM == 0), ][1, ]
   } else if(length(T4$BM) > 0 && T4$BM < 0.1) {
-    if(length(T1$BM) > 0 && T1$BM < 0.1) {
+    if(length(T2$BM) > 0 && T2$BM < 0.1) {
       if(length(T0$BM) > 0 && T0$BM < 0.12) {
         Ta <- T0[which(T0$BM < 0.12), ]
         Ta[1,]$lat <- mean(Ta$lat)
         Ta[1,]$lon <- mean(Ta$lon)
         Ta <- Ta[1,]
       } else {
-        Ta <- T1[which(T1$BM < 0.1), ][1, ]
+        Ta <- T2[which(T2$BM < 0.1), ][1, ]
       }
     } else if(length(T3$BM) > 0 && T3$BM < 0.1) {
       Ta <- T3[which(T3$BM < 0.1), ][1, ]
@@ -484,40 +554,40 @@ atomizar <- function (Ts, map = FALSE) {
       Ta <- T4[which(T4$BM < 0.1), ][1, ]
     }
   }
-  if(map)
-    hace_mapa2(Ta)
-  
+  if(is.null(Ta)) {
+    Ta <- data.frame(niv = -1, BM = 0, cve = 0, nombre = 0, lat = 0, lon = 0)
+  } else if(map) {
+    hace_mapa(Ta)
+  }
   Ta
 }
 
 #-------------------------------------------------------------------
 # Ejecuta el procedimiento sobre el archivo de direcciones y lo
 # guarda en un archivo separado.
-main <- function (path, sheet = 1, file) {
+main <- function (path, sheet = 1, file, paralelo = FALSE) {
   map.is.visible <<- FALSE
   # Procesamiento por lote
   require(readxl)
   matricula <- read_excel(path, sheet)
 
-  n <- length(matricula$mun)
-  res <- NULL
-  err <- c()
-  while(n > 0) {
+  if(paralelo) {
+    require(doParallel)
+    registerDoParallel(cores = (detectCores() - 1))
+  }
+  require(plyr)
+  res <- ldply(1:length(matricula$mun), function(n) {
     # Procesa la dirección y obtiene la coordenada geográfica probable
     c <- atomizar(podar(identifica(matricula[n,])))
-    if(is.null(c)) {
-      err <- c(n, err) # No tuvo éxito
-    } else {
-      c$n <- n #Agrega el número de renglón
-      res <- rbind(res, c)
-    }
-    n <- n - 1
-  }
-  # Intercambia el orden de las columnas
-  res <- res[c(7, 1:6)]
+    c$n <- n #Agrega el número de renglón
+    c
+  }, .parallel = paralelo, .progress = "time")
+
   # Guarda en el sentido inverso en el que fue generado (orden lógico)
+  # Intercambia el orden de las columnas
   require(openxlsx)
-  write.xlsx(res[c(length(res$n):1),], file)
-  
-  err
+  write.xlsx(res[c(7, 1:6)], file)
 }
+
+#
+# http://seananderson.ca/2013/12/01/plyr.html

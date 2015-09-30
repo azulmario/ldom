@@ -1,0 +1,96 @@
+---
+title: 'Reporte: Sobre la factibilidad de localización automatizada de domicilios
+  geográficos'
+author: "Mario Hernández Morales"
+date: "Septiembre de 2015"
+output: html_document
+---
+
+Para su desarrollo se implementa una técnica de inteligencia artificial denominada árbol de decisión.
+
+La información de las direcciones se tienen almacenadas en un archivo con los campos de la dirección separadas según la norma técnica de domicilios geográficos de Inegi.
+
+```{r, echo=FALSE}
+rm(list=ls(all=TRUE))
+source("qmaps.R")
+path = "dilectu/Salamanca_Prim.xlsx"
+require(readxl)
+matricula <- read_excel(path)
+n <- sample(1:length(matricula$mun), 1)
+dom <-matricula[n,]
+```
+
+El método consiste en utilizar la misma técnica de los usuarios al capturar una dirección, primero se captura el municipio, con ello tenemos la primera ubicación, más burda, pero es el inicio para localizar el domicilio:
+
+```{r, echo=FALSE}
+map.is.visible <- TRUE
+r_mun <- identifica_mun(dom$mun)
+mapa
+```
+
+Una vez contando con el municipio, se procede a localizar la localidad:
+
+```{r, echo=FALSE}
+r_loc <- identifica_loc(dom$loc, r_mun$cve, r_mun$BM)
+mapa
+```
+
+Se localiza la colonia o asentamiento:
+
+```{r, echo=FALSE}
+r_snt <- identifica_snt(dom$snt, r_loc$cve, r_loc$BM)
+mapa
+```
+
+Se localiza la vialidad o calle:
+
+```{r, echo=FALSE}
+r_vld <- identifica_vld(dom$vld, r_loc$cve, r_loc$BM)
+mapa
+```
+
+Y finalmente el número exterior. Hay que considerar todas las posibilidades, por lo que obtenemos una nube de puntos probables:
+
+```{r, echo=FALSE}
+r_num <- identifica_num(dom$num, r_vld[1,]$cve, r_vld[1,]$BM)
+mapa
+```
+
+## Construcción del arbol de desición
+
+Crea el árbol de decisión
+```{r}
+Tt <- identifica(dom, TRUE)
+entriopia(Tt)
+mapa
+```
+Podar el árbol
+```{r}
+Tt <- podar(Tt, TRUE)
+entriopia(Tt)
+mapa
+```
+Atomiza el árbol
+```{r}
+Tt <- atomizar(Tt, TRUE)
+entriopia(Tt)
+mapa
+```
+
+
+## Análisis estadístico de los resultados
+
+```{r, echo=FALSE}
+#require(readxl)
+#res <- read_excel("dilectu/res.xlsx")
+#hace_mapa2(res)
+#hist(res$BM)
+#hist(res[which(res$niv == 0), ]$BM)
+#hist(res[which(res$niv == 1), ]$BM)
+#hist(res[which(res$niv == 3), ]$BM)
+#hist(res[which(res$niv == 4), ]$BM)
+#hist(res[which(res$niv == 0 & res$BM > 0), ]$BM)
+#hist(res[which(res$niv == 1 & res$BM > 0), ]$BM)
+#hist(res[which(res$niv == 3 & res$BM > 0), ]$BM)
+#hist(res[which(res$niv == 4 & res$BM > 0), ]$BM)
+```

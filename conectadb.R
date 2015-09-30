@@ -1,4 +1,4 @@
-require("RODBC") # Para realizar las conexiones con PostgreSQL
+library("RODBC") # Para realizar las conexiones con PostgreSQL
 
 #Municipio 
 mun.php <- function() {
@@ -20,64 +20,52 @@ loc.php <- function(m = "015") {
 #Incorpora el tipo de asentamiento
 col.php <- function(m = "015", l = "0001") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_asen, nombre || ' ' || nom_asen as nom_asen FROM colonia as a, cat_tipo_asen as c WHERE ",
+  d <- sqlQuery(dbconn, paste("SELECT cve_asen, nombre || ' ' || nom_asen as nom_asen, nom_asen as nom_asen0 FROM colonia as a, cat_tipo_asen as c WHERE ",
     "(cve_mun = '", m, "') AND (",
     "(cve_mun_u = '", m, "' AND cve_loc_u = '", l, "')",
     " OR (cve_mun_r = '", m, "' AND cve_loc_r = '", l, "' AND distancia < 1000)) AND a.cve_tipo_asen = c.cve_tipo_asen ORDER BY nom_asen;", sep = ""))
   odbcClose(dbconn)
-  d
+  d0 <- d[c(1, 3)]
+  colnames(d0)[2] <- "nom_asen"
+  rbind(d[c(1, 2)], d0)
 }
 
 #Vialidad
 #Incorpora el tipo de vialdad
 cal.php <- function(m = "015", l = "0001") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_via, descripcion || ' ' || nom_via as nom_via FROM vialidad as v, cat_vialidad as c WHERE cve_mun = '", m, "' AND cve_loc = '", l, "' AND es_llave AND v.cve_tipo_vial = c.cve_tipo_vial ORDER BY nom_via;", sep = "") )
+  d <- sqlQuery(dbconn, paste("SELECT cve_via, descripcion || ' ' || nom_via as nom_via, nom_via as nom_via0 FROM vialidad as v, cat_vialidad as c WHERE cve_mun = '", m, "' AND cve_loc = '", l, "' AND es_llave AND v.cve_tipo_vial = c.cve_tipo_vial ORDER BY nom_via;", sep = "") )
   odbcClose(dbconn)
-  d
-}
-
-cal0.php <- function(m = "015", l = "0001") {
-  dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_via, nom_via FROM vialidad WHERE cve_mun = '", m, "' AND cve_loc = '", l, "' AND es_llave ORDER BY nom_via;", sep = "") )
-  odbcClose(dbconn)
-  d
+  d0 <- d[c(1, 3)]
+  colnames(d0)[2] <- "nom_via"
+  rbind(d[c(1, 2)], d0)
 }
 
 #Número exterior
 #Incorpora calles homónimas
-gn.php <- function(c = "27000101583", n="1") {
-  dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste(
-  "(SELECT lat, lon FROM geocode1 WHERE cve_via IN ",
-  "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") AND num = '", n, "') UNION ",
-  "(SELECT lat, lon FROM geocode0 WHERE cve_via IN ",
-  "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") AND num = '", n, "') ;", sep = ""))
-  odbcClose(dbconn)
-  d
-}
-
 num.php <- function(c = "27000101583") {
   dbconn <- odbcConnect("local")
   d <- sqlQuery(dbconn, paste(
     "(SELECT lat, lon, num FROM geocode1 WHERE cve_via IN ",
-    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") ) UNION ",
+    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ")) UNION ",
     "(SELECT lat, lon, num FROM geocode0 WHERE cve_via IN ",
-    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") ) ;", sep = ""))
+    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, "));", sep = ""))
   odbcClose(dbconn)
   d
 }
 
 #Entrecalles
-#@todo en vez de regresar claves, regrese los nombres
+#Combina nombres similares y con el tipo de vialidad
 ecal.php <- function(c = "015000100024") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT via_unica AS cve FROM vialidad WHERE cve_via IN ",
+  d <- sqlQuery(dbconn, paste("SELECT v.via_unica AS cve, descripcion || ' ' || nom_via as nom_via, v.nom_via as nom_via0 FROM vialidad as v, cat_vialidad as c WHERE v.cve_via IN ",
     "(SELECT cve_via  FROM interseccion WHERE (cve_via0 IN (SELECT cve_via FROM vialidad WHERE via_unica = ", c, ")) UNION ",
     " SELECT cve_via0 FROM interseccion WHERE (cve_via  IN (SELECT cve_via FROM vialidad WHERE via_unica = ", c, "))) ",
-    "GROUP BY cve ORDER BY cve ASC;", sep = "") )
+    "AND v.cve_tipo_vial = c.cve_tipo_vial GROUP BY cve, descripcion, nom_via ORDER BY cve ASC;", sep = ""))
   odbcClose(dbconn)
-  d
+  d0 <- d[c(1, 3)]
+  colnames(d0)[2] <- "nom_via"
+  rbind(d[c(1, 2)], d0)
 }
 
 #fix(d)
@@ -93,7 +81,7 @@ gloc.php <- function(m = "015", l = "0001") {
   d
 }
 
-# Proporciona la colonia (gcol.php)
+# Proporciona la colonia
 gcol.php <- function(c = "0780") {
   dbconn <- odbcConnect("local")
   d <- sqlQuery(dbconn, paste(
@@ -102,7 +90,7 @@ gcol.php <- function(c = "0780") {
   d
 }
 
-# Proporciona la calle (gcal.php)
+# Proporciona la calle
 gcal.php <- function(c = 15006700440) {
   dbconn <- odbcConnect("local")
   d <- sqlQuery(dbconn, paste(
@@ -111,8 +99,31 @@ gcal.php <- function(c = 15006700440) {
   d
 }
 
-# Direcciones almacenadas (gn.php)
-# Contando con entrecalles (gecal.php)
+# Direcciones almacenadas
+gn.php <- function(c = "27000101583", n="1") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste(
+    "(SELECT lat, lon FROM geocode1 WHERE cve_via IN ",
+    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") AND num = '", n, "') UNION ",
+    "(SELECT lat, lon FROM geocode0 WHERE cve_via IN ",
+    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") AND num = '", n, "');", sep = ""))
+  odbcClose(dbconn)
+  d
+}
+
+# Proporciona una entrecalle
+gecal.php <- function(c = 15006700440, e = 15006700441) {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste(
+    "SELECT lat, lon FROM interseccion WHERE ",
+    "((cve_via  IN (SELECT cve_via FROM vialidad WHERE via_unica = '",c,"')) ",
+    "AND (cve_via0 IN (SELECT cve_via FROM vialidad WHERE via_unica = '",e,"'))) OR ",
+    "((cve_via  IN (SELECT cve_via FROM vialidad WHERE via_unica = '",e,"')) ",
+    "AND (cve_via0 IN (SELECT cve_via FROM vialidad WHERE via_unica = '",c,"'))) ",
+    "ORDER BY lat DESC LIMIT 1;", sep = ""))
+  odbcClose(dbconn)
+  d
+}
 
 #-------------------------------------------------------------------
 # Zonas metropolitanas
@@ -131,8 +142,7 @@ gcal.php <- function(c = 15006700440) {
 # 	Clave de la localidad
 #             Nombre de la localidad
 #                               Conurbación
-#67	110050001	11DTV0016C 	TELESECUNDARIA FEDERAL NUM. 16 	EJIDO CERRO GORDO 	1	RURAL 
-#Apaseo el Grande	Apaseo el Grande
+#67	110050001	Apaseo el Grande	Apaseo el Grande
 #67	110050051	San Pedro Tenango el Nuevo	Apaseo el Grande
 #68	110150001	Guanajuato	Guanajuato
 #68	110150067	Marfil	Guanajuato
@@ -162,7 +172,6 @@ gcal.php <- function(c = 15006700440) {
 #204	110350001	Juventino Rosas
 #205	110420001	Valle de Santiago
 #206	110460001	Yuriria
-
 conurbación <- function(r_loc.cve_loc = "0150001") {
   m = substr(r_loc.cve_loc, 1, 3)
   l = substr(r_loc.cve_loc, 4, 7)
