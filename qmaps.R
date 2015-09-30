@@ -240,7 +240,7 @@ entriopia <- function (Tt) {
 # Esquema de trabajo con listas tratadas como árboles de decisiones
 identifica <- function (dom, map = FALSE) {
   # Identifica las abreviaciones y las sustituye
-  dom$mun <- abrev_loc(dom$mun)
+  dom$mun <- abrev_mun(dom$mun)
   dom$loc <- abrev_loc(dom$loc)
   dom$snt <- abrev_snt(dom$snt)
   dom$vld <- abrev_vld(dom$vld)

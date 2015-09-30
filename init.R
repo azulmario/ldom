@@ -12,7 +12,7 @@
 rm(list=ls(all=TRUE))
 
 #! Archivo de trabajo
-path = "dilectu/Salamanca_Prim.xlsx"
+path = "ccu/base.xlsx"
 require(readxl)
 matricula <- read_excel(path)
 
@@ -23,7 +23,6 @@ dom <-matricula[n,]
 source("qmaps.R")
 
 # Primer ejemplo
-dom <- matricula[1065,]
 map.is.visible <- TRUE
 r_mun <- identifica_mun(dom$mun)
 r_loc <- identifica_loc(dom$loc, r_mun$cve, r_mun$BM)
@@ -36,14 +35,6 @@ r_ref2 <- identifica_ref(dom$ref2, r_vld[1,]$cve, r_vld[1,]$BM)
 r_num <- identifica_num(dom$num, r_vld[1,]$cve, r_vld[1,]$BM)
 
 # Segundo ejemplo
-source("qmaps.R")
-dom$vld <- "BLVD. JUAN JOSÉ TORRES LANDA 1701"
-dom$num <- ""
-dom$snt <- "PREDIO EL TLACUACHE"
-dom$loc <- "LEON DE LOS ALDAMA"
-dom$mun <- "León"
-
-dom <- matricula[1151,]
 # Crea el arbol de desición
 Tt <- identifica(dom, TRUE)
 entriopia(Tt)
@@ -57,7 +48,6 @@ entriopia(Tt)
 
 # Tercer ejemplo
 # El procedimiento completo se realiza en dos horas.
-rm(list=ls(all=TRUE))
 source("qmaps.R")
 main(path = "dilectu/Demo.xlsx", file = "dilectu/temp00.xlsx", paralelo = TRUE)
 

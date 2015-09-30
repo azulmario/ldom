@@ -63,10 +63,10 @@ abrev_mun <- function(tw) {
   tw <- gsub("Ó", "O", tw)
   tw <- gsub("Ú", "U", tw)
   tw <- gsub("Ü", "U", tw)
-  tw <- gsub(".", ". ", tw)
+  tw <- gsub("\\.", ". ", tw)
 
-  tw <- gsub("FCO. ", "FRANCISCO ", tw) # abreviaciones principales
-  tw <- gsub("STA. ", "SANTA ", tw)
+  tw <- gsub("FCO\\. ", "FRANCISCO ", tw) # abreviaciones principales
+  tw <- gsub("STA\\. ", "SANTA ", tw)
 
   tw <- gsub("[[:punct:]]", " ", tw) # Quita otros símbolos de puntuación
   tw <- gsub("[[:space:]]+", " ", tw) # Espacios dobles generados
@@ -88,9 +88,9 @@ abrev_loc <- function(tw) {
   tw <- gsub("Ó", "O", tw)
   tw <- gsub("Ú", "U", tw)
   tw <- gsub("Ü", "U", tw)
-  tw <- gsub(".", ". ", tw)
+  tw <- gsub("\\.", ". ", tw)
 
-  tw <- gsub("FCO. ", "FRANCISCO ", tw) # abreviaciones principales
+  tw <- gsub("FCO\\. ", "FRANCISCO ", tw) # abreviaciones principales
   
   tw <- gsub("[[:punct:]]", " ", tw) # Quita otros símbolos de puntuación
   tw <- gsub("[[:space:]]+", " ", tw) # Espacios dobles generados
@@ -113,15 +113,15 @@ abrev_snt <- function(tw) {
   tw <- gsub("Ó", "O", tw)
   tw <- gsub("Ú", "U", tw)
   tw <- gsub("Ü", "U", tw)
-  tw <- gsub(".", ". ", tw)
+  tw <- gsub("\\.", ". ", tw)
   
-  tw <- gsub("COL. ", "COLONIA ", tw) # abreviaciones principales
-  tw <- gsub("FRACC. ", "FRACCIONAMIENTO ", tw)
-  tw <- gsub("HAB. ", "HABITACIONAL ", tw)
+  tw <- gsub("COL\\. ", "COLONIA ", tw) # abreviaciones principales
+  tw <- gsub("FRACC\\. ", "FRACCIONAMIENTO ", tw)
+  tw <- gsub("HAB\\. ", "HABITACIONAL ", tw)
   
-  tw <- gsub("OTE. ", "ORIENTE ", tw)
-  tw <- gsub("STA. ", "SANTA ", tw)
-  tw <- gsub("HDA. ", "HACIENDA ", tw)
+  tw <- gsub("OTE\\. ", "ORIENTE ", tw)
+  tw <- gsub("STA\\. ", "SANTA ", tw)
+  tw <- gsub("HDA\\. ", "HACIENDA ", tw)
 
   tw <- gsub("[[:punct:]]", " ", tw) # Quita otros símbolos de puntuación
   tw <- gsub("[[:space:]]+", " ", tw) # Espacios dobles generados
@@ -140,24 +140,24 @@ abrev_vld <- function(tw) {
   tw <- gsub("Ó", "O", tw)
   tw <- gsub("Ú", "U", tw)
   tw <- gsub("Ü", "U", tw)
-  tw <- gsub(".", ". ", tw)
-  tw <- gsub("AND. ", "ANDADADOR ", tw) # abreviaciones principales
-  tw <- gsub("AVE. ", "AVENIDA ", tw)
-  tw <- gsub("AV. ", "AVENIDA ", tw)
-  tw <- gsub("C. ", "CALLE ", tw)
-  tw <- gsub("CTO. ", "CIRCUITO ", tw)
-  tw <- gsub("BLVD. ", "BOULEVARD ", tw)
+  tw <- gsub("\\.", ". ", tw)
+  tw <- gsub("AND\\. ", "ANDADADOR ", tw) # abreviaciones principales
+  tw <- gsub("AVE\\. ", "AVENIDA ", tw)
+  tw <- gsub("AV\\. ", "AVENIDA ", tw)
+  tw <- gsub("C\\. ", "CALLE ", tw)
+  tw <- gsub("CTO\\. ", "CIRCUITO ", tw)
+  tw <- gsub("BLVD\\. ", "BOULEVARD ", tw)
   tw <- gsub("BULEVARD ", "BOULEVARD ", tw)
-  tw <- gsub("PROL. ", "PROLONGACION ", tw)
-  tw <- gsub("PRIV. ", "PRIVADA ", tw)
+  tw <- gsub("PROL\\. ", "PROLONGACION ", tw)
+  tw <- gsub("PRIV\\. ", "PRIVADA ", tw)
 
-  tw <- gsub("L.CARDENAS ", "LAZARO CARDENAS ", tw)
-  tw <- gsub("FCO. ", "FRANCISCO ", tw)
-  tw <- gsub("HDEZ. ", "HERNANDEZ ", tw)
-  tw <- gsub("HEROES DE LA IND. ", "HEROES DE LA INDEPENDENCIA ", tw)
-  tw <- gsub("MA. ", "MARIA ", tw)
+  tw <- gsub("L\\. CARDENAS ", "LAZARO CARDENAS ", tw)
+  tw <- gsub("FCO\\. ", "FRANCISCO ", tw)
+  tw <- gsub("HDEZ\\. ", "HERNANDEZ ", tw)
+  tw <- gsub("HEROES DE LA IND\\. ", "HEROES DE LA INDEPENDENCIA ", tw)
+  tw <- gsub("MA\\. ", "MARIA ", tw)
   
-  tw <- gsub("NTE. ", "NORTE ", tw)
+  tw <- gsub("NTE\\. ", "NORTE ", tw)
 
   tw <- gsub("[[:punct:]]", " ", tw) # Quita otros símbolos de puntuación
   tw <- gsub("[[:space:]]+", " ", tw) # Espacios dobles generados
