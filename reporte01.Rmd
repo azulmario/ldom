@@ -10,14 +10,15 @@ Para su desarrollo se implementa una técnica de inteligencia artificial denomin
 
 La información de las direcciones se tienen almacenadas en un archivo con los campos de la dirección separadas según la norma técnica de domicilios geográficos de Inegi.
 
+Por ejemplo, para localizar el siguiente domicilio:
 ```{r, echo=FALSE}
 rm(list=ls(all=TRUE))
 source("qmaps.R")
-path = "dilectu/Salamanca_Prim.xlsx"
-require(readxl)
-matricula <- read_excel(path)
+path = "dom.xlsx"
+matricula <- lee(path, 3)
 n <- sample(1:length(matricula$mun), 1)
 dom <-matricula[n,]
+t(dom)
 ```
 
 El método consiste en utilizar la misma técnica de los usuarios al capturar una dirección, primero se captura el municipio, con ello tenemos la primera ubicación, más burda, pero es el inicio para localizar el domicilio:

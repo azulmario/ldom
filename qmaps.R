@@ -1,12 +1,22 @@
+# Librería que implementa la búsqueda inteligente de
+# domicilios geográficos mediante arbol de desición.
+# Mario Hernández Morales / 2015 - 2016
+
 library(stringr)    # Para la conversión de tipos numéricos a cadenas
 library(stringdist) # Para las comparaciones de nombres topográficos
+library(jsonlite)   # Convertir cadenas de tipo json
+library(geosphere)  # Cálculo de distancias geográficas
 source("cadenas.R")   # Para la conversión de tipos numéricos a cadenas
 source("conectadb.R") # Para obtener la información de los servidores
 
 # Variables de control
 # Para mostrar el mapa durante el diseño, inhabilitar en producción
-map.is.visible <<- FALSE
-mapa <<- NULL
+map.is.visible = FALSE
+mapa = NULL
+
+# Variable auxiliar usada en común para toda la lista
+# definida en lee() y utilizada en identifica()
+alcance0 <- NULL
 
 #-------------------------------------------------------------------
 # Mostrar el resultado en un mapa
@@ -27,11 +37,17 @@ hace_mapa <- function(r, r_zoom = NULL) {
 
 #-------------------------------------------------------------------
 # Primero identifica el municipio
+Cachelist_mun <- NULL
 identifica_mun <- function(dom.mun) {
-  origen <- mun.php()
-  origen$nombre <- limpieza(as.character(origen$nombre))
+  if(is.null(Cachelist_mun)) {
+    origen <- mun.php()
+    origen$nombre <- limpieza(as.character(origen$nombre))
+    Cachelist_mun <<- origen
+  } else {
+    origen <- Cachelist_mun
+  }
   destino <- limpieza(dom.mun)
-
+  # 0 <= p <= 0.25
   BM <- stringdistmatrix(origen$nombre, destino, method="jw", p = 0.1)
   BM <- cbind(BM,origen)
   BM <- BM[with(BM, order(BM)), ]
@@ -50,13 +66,32 @@ identifica_mun <- function(dom.mun) {
   r_mun
 }
 
+# Manejo de cache para el listado de localidades de cada municipio
+Cachelist_loc <- vector(mode = "list", length = 46)
+# Regresa el listado de localidades, consuderanto el uso de dos nombres
+list_loc <- function(cve_mun = 1L) {
+  if(is.null(Cachelist_loc[[cve_mun]])) {
+    m <- str_pad(cve_mun, 3, pad = "0")
+    origen1 <- loc.php(m)
+    origen2 <- loc2.php(m)
+    origen3 <- cbind(origen2, as.data.frame(localidad_partir(as.vector(origen2$nombre))))
+    origen4 <- data.frame(origen3$cve_loc, origen3$V1)
+    origen5 <- data.frame(origen3$cve_loc, origen3$V2)
+    colnames(origen5) <- colnames(origen4) <- c("cve_loc", "nombre")
+    origen <- rbind(origen1, origen4, origen5)
+    origen$nombre <- limpieza(as.character(origen$nombre))
+    Cachelist_loc[[cve_mun]] <<- origen
+  }
+  return(Cachelist_loc[[cve_mun]])
+}
+
 #-------------------------------------------------------------------
 # Segundo identifica la localidad
 # Nota: Considerar permuta con colonia, principalmente en zona rural
 identifica_loc <- function(dom.loc, r_mun.cve_mun, r_mun.BM) {
-  origen <- loc.php(m = str_pad(r_mun.cve_mun, 3, pad = "0"))
-  if(length(origen$nombre) > 0  && ! is.na(dom.loc)) {
-    origen$nombre <- limpieza(as.character(origen$nombre))
+  origen <- list_loc(r_mun.cve_mun)
+  
+  if(length(origen$nombre) > 0  && ! is.na(dom.loc) && dom.loc != '') {
     destino = limpieza(dom.loc)
 
     BM <- stringdistmatrix(origen$nombre, destino, method="jw", p = 0.1)
@@ -77,12 +112,98 @@ identifica_loc <- function(dom.loc, r_mun.cve_mun, r_mun.BM) {
     }
     r_loc$niv <- 4
     r_loc$BM <- 1.0 - (1.0 - r_loc$BM) * (1.0 - r_mun.BM)
+    #r_loc$TM <- 0L
     r_loc$cve <- paste (m, l, sep = "")
     r_loc
   } else {
     NULL
   }
 }
+
+#-------------------------------------------------------------------
+# En el caso de no declarar la localidad, y debido a su importancia
+# se busca en las localidades urbanas, descartando el resto.
+# Se asegura que se busque, pero sin exagerar.
+identifica_locurb <- function(r_mun.cve_mun, r_mun.BM) {
+  origen <- loc.php(m = str_pad(r_mun.cve_mun, 3, pad = "0"))
+  if(length(origen$nombre) > 0) {
+    origen$nombre <- limpieza(as.character(origen$nombre))
+    zurb <- switch(r_mun.cve_mun,
+                  c(1,117),
+                  c(1,17,27,47),
+                  c(1,67,192,236,244,306,591),
+                  c(1,65,71),
+                  c(1,3,8,21,30,33,36,45,47,51,298),
+                  c(1),
+                  c(1,91,109,118,130,132,135,143,146,153,154,156,159,
+                   161,165,169,174,178,185,245,250,256,258,414,415),
+                  c(1),
+                  c(1,10,18,25,33,49),
+                  c(1),
+                  c(1,19,22,54),
+                  c(1),
+                  c(1),
+                  c(1,132,255,742),
+                  c(1,31,34,39,67,91,102,111,115,126),
+                  c(1),
+                  c(1,59,62,67,68,69,80,81,82,95,99,101,102,
+                   113,138,148,161,163,165,176,177,181,359),
+                  c(1,4,30,35),
+                  c(1,27,68),
+                  c(1,263,267,277,317,335,340,345,347,358,401,413,429,435,
+                   439,445,451,452,458,464,703,785,786,869,885,975,1269,1294),
+                  c(1),
+                  c(1,85),
+                  c(1,93,104,148,177,192,210,288),
+                  c(1),
+                  c(1,34,155),
+                  c(1,23),
+                  c(1,43,46,59,87,110,118,124,133,135,161),
+                  c(1,31,48,58,60,64),
+                  c(1,103),
+                  c(1,47,71,110,120,211,251,265),
+                  c(1,32,61,74),
+                  c(1,15,86),
+                  c(1,110,149,203,428,778),
+                  c(1),
+                  c(1,47,50,53,75),
+                  c(1),
+                  c(1,4,6,19,22,24,31,62,66,84,91,191),
+                  c(1),
+                  c(1,22,26),
+                  c(1),
+                  c(1),
+                  c(1,86,117),
+                  c(1),
+                  c(1,12,23,42,43,44),
+                  c(1),
+                  c(1,12,44,75,76))
+
+    r_loc <- NULL
+    for(i in zurb)
+      r_loc <- rbind(r_loc, origen[origen$cve_loc == i,])
+
+    m <- mapply(str_pad, r_mun.cve_mun, 3, pad = "0") 
+    l <- mapply(str_pad, r_loc$cve_loc, 4, pad = "0")
+    d <- mapply(gloc.php, m, l)
+    lat <- as.numeric(d[1,])
+    lon <- as.numeric(d[2,])
+    r_loc <- data.frame(r_loc, lat, lon)  
+    colnames(r_loc)[1] <- "cve"
+    if(map.is.visible && length(lat) > 0) {
+      hace_mapa(r_loc, 13)
+    }
+    r_loc$niv <- 4
+    r_loc$BM <- r_mun.BM
+    #r_loc$TM <- 0L
+    r_loc$cve <- paste (m, l, sep = "")
+
+    r_loc[c(6,1,2,3,4,5)]
+  } else {
+    NULL
+  }
+}
+
 
 #-------------------------------------------------------------------
 # Tercero identifica la colonia
@@ -101,14 +222,17 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM) {
     d <- sapply(mapply(str_pad, as.character(r_snt$cve_asen), 4, pad = "0"), gcol.php)
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
+    radio <- round(as.numeric(d[3,]), digits = 3)
     r_snt <- data.frame(r_snt, lat, lon)
     colnames(r_snt)[2] <- "cve"
     colnames(r_snt)[3] <- "nombre"
     if(map.is.visible & length(lat) > 0) {
       hace_mapa(r_snt, 15)
     }
+    r_snt$cve <- paste("[", radio,",",as.integer(r_loc.cve_loc), ",", as.integer(r_snt$cve), "]", sep = "")
     r_snt$niv <- 3
     r_snt$BM <- 1.0 - (1.0 - r_snt$BM) * (1.0 - r_loc.BM)
+    #r_snt$TM <- 0L
     r_snt
   } else {
     NULL
@@ -117,30 +241,72 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM) {
 
 #-------------------------------------------------------------------
 # Cuarto identifica la vialidad
-identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM) {
-  origen <- cal.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
 
-  destino = limpieza(dom.vld)
+# Una colonia tiene en promedio un radio de 502 mt, con una desviación
+# estándar de 343 metros.
+# La estrategia es buscar dentro de un radio de 3 sigmas desde el centroide
+# interno de la colonia. Hay que considerar que algunas calles por su longitud
+# se referencia puede salir del rango, por lo que se considera como un método
+# de refinamiento.
+identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM, r_snt = NULL) {
+  origen <- cal2.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
+  if(!is.null(r_snt))
+    origen <- origen[!(is.na(origen$lat)|is.na(origen$lon)),]
+  destino <- limpieza(dom.vld)
   if(length(origen$nom_via) > 0 && ! is.na(dom.vld) && destino != "" && destino != "." && destino != ".." && destino != "...") {
+    # Si se cuenta con información de las colonias, calcula las distancias
+    origen$d <- NA
+    if(!is.null(r_snt)) {
+      cs <- length(r_snt$lat)
+      r <- 0
+      while(cs > 0) {
+        lat2 <- r_snt[cs,]$lat ; long2 <- r_snt[cs,]$lon
+        # Calcula la distancia con el centro de la colonia
+        cv <- length(origen$lat)
+        while(cv > 0) {
+          lat1 <- origen[cv,]$lat ; long1 <- origen[cv,]$lon
+          d0 <- distGeo(c(long1,lat1), c(long2,lat2))
+          if(is.na(origen[cv,6])) {
+            origen[cv,6] <- d0
+          } else {
+            origen[cv,6] <- min(d0, origen[cv,6])
+          }
+          cv <- cv - 1
+        }
+        r <- max(r, fromJSON(r_snt$cve[cs])[1])
+        cs <- cs - 1
+      }
+      origen <- origen[!is.na(origen[,6]) & origen[,6] <= 4*r,]
+    }
+
+    # Hace limpieza de los candidatos de nombres
     origen$nom_via <- limpieza(as.character(origen$nom_via))
+    origen$nom_via0 <- limpieza(as.character(origen$nom_via0))
 
-    BM <- stringdistmatrix(origen$nom_via, destino, method="jw", p = 0.1)
-    BM <- cbind(BM,origen)
-    BM <- BM[with(BM, order(BM)), ]
+    #@error No funciona con  
+    #destino <- "CAMPIÑA", cuando es "DE LA CAMPIÑA"
 
-    r_vld <- BM[BM[,1] <= 0.05+min(BM[,1]),]
-    d <- sapply(r_vld$cve_via, gcal.php)
-    lat <- as.numeric(d[1,])
-    lon <- as.numeric(d[2,])
-    r_vld <- data.frame(r_vld, lat, lon)
-    colnames(r_vld)[2] <- "cve"
-    colnames(r_vld)[3] <- "nombre"
-    if(map.is.visible & length(lat) > 0) {
+    # Calcula las distancias con cada uno de los candidatos
+    origen$B <- stringdistmatrix(origen$nom_via, destino, method="jw", p = 0.1)
+    origen$M <- stringdistmatrix(origen$nom_via0, destino, method="jw", p = 0.1)
+    r_vld <- origen[origen$B <= 0.05+min(origen$B, origen$M) | origen$M <= 0.05+min(origen$B, origen$M),]
+    
+    # Revisar si este caso es necesario o genera error, cuando se utiliza 0.00 en vez de 0.05
+    #if (!length(r_vld$lat)) {
+    #  origen$B <- stringdistmatrix(rsna(origen$nom_via), rsna(destino), method="soundex")
+    #  origen$M <- stringdistmatrix(rsna(origen$nom_via0), rsna(destino), method="soundex")
+    #  r_vld <- origen[origen$B == 0 | origen$M == 0,]
+    #}
+    
+    colnames(r_vld)[1] <- "cve"
+    colnames(r_vld)[2] <- "nombre"
+    if(map.is.visible & length(r_vld$lat) > 0 && !is.na(r_vld$lat)) {
       hace_mapa(r_vld, 17)
     }
     r_vld$niv <- 2
-    r_vld$BM <- 1.0 - (1.0 - r_vld$BM) * (1.0 - r_loc.BM)
-    r_vld
+    r_vld$BM <- 1.0 - (1.0 - min(r_vld$B, r_vld$M)) * (1.0 - r_loc.BM)
+    #r_vld$TM <- 0L
+    r_vld[,c(10,1,2,4,5,9)]
   } else {
     NULL
   }
@@ -171,6 +337,7 @@ identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
     }
     r_ref$niv <- 1
     r_ref$BM <- 1.0 - (1.0 - r_ref$BM) * (1.0 - r_vld.BM)
+    #r_ref$TM <- 0L
     r_ref
   } else {
     NULL
@@ -183,15 +350,18 @@ identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
 # Se cambia la comparación string por numeric.
 identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
   origen <- num.php (c = r_vld.cve_via)
-  destino = as.numeric(limpieza0(dom.num))
-  if(length(origen$num) > 0 && ! is.na(dom.num) && ! is.na(destino)) {
+  destino <- as.numeric(limpieza0(dom.num))
+  if(!is.null(dom.num) && !is.na(dom.num) && !is.na(destino) && length(origen$num) > 0) {
     origen.num <- as.numeric(limpieza0(as.character(origen$num)))
 
     BM <- 2*pnorm(sqrt(2)*(abs(origen.num-destino)/50))-1
     BM <- cbind(BM, origen)
     BM <- BM[with(BM, order(BM)), ]
 
-    r_num <- BM[BM[,1] <= 0.05+min(BM[,1]),]
+    r_num <- BM[BM[,1] <= min(BM[,1]),]
+    # @todo excluye a los números muy alejados
+    # @todo que regrese el más cercano
+    # @todo o pares cuando no sea exácto.
     r_num <- cbind(r_vld.cve_via, r_num)
     r_num$num <- as.character(r_num$num)
     colnames(r_num)[1] <- "cve"
@@ -201,7 +371,8 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
     }
     r_num$niv <- 0
     r_num$BM <- 1.0 - (1.0 - r_num$BM) * (1.0 - r_vld.BM)
-    r_num[c(2, 1, 5, 3, 4, 6)]
+    #r_num$TM <- 0L
+    r_num[c(2,1,5,3,4,6)]
     } else {
     NULL
   }
@@ -231,65 +402,115 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
 # la ganancia de información.
 
 # Entropía (aleatoriedad del árbol)
-#   E = sum -p log_2(p)
-# El valor p es la probabilidad de éxito
+#   E = sum_{i=1}^n -p_i log_2(p_i)
+# El valor p_i es la probabilidad de éxito
 entriopia <- function (Tt) {
   sum((Tt$BM - 1)*log2(1 - Tt$BM))
 }
 
 # Esquema de trabajo con listas tratadas como árboles de decisiones
 identifica <- function (dom, map = FALSE) {
-  # Identifica las abreviaciones y las sustituye
-  dom$mun <- abrev_mun(dom$mun)
-  dom$loc <- abrev_loc(dom$loc)
-  dom$snt <- abrev_snt(dom$snt)
-  dom$vld <- abrev_vld(dom$vld)
+  alcance <- NULL
+  if(is.null(alcance0)){
+    alcance <- list(mun = "mun"  %in% colnames(dom), loc = "loc" %in% colnames(dom),
+                    tsnt = "tsnt" %in% colnames(dom), snt = "snt" %in% colnames(dom), 
+                    tvld = "tvld" %in% colnames(dom), vld = "vld" %in% colnames(dom),
+                    num = "num"  %in% colnames(dom), int = "int" %in% colnames(dom),
+                    ref1 = "ref1" %in% colnames(dom), ref2 = "ref2" %in% colnames(dom),
+                    CP = "CP"   %in% colnames(dom))
+  } else {
+    alcance <- alcance0
+  }
+  # Identifica abreviaciones y las sustituye
+  dom$mun <- limp_abrev(dom$mun, abrev_mun)
+  dom$loc <- limp_abrev(dom$loc, abrev_loc)
+  dom$snt <- limp_abrev(dom$snt, abrev_snt)
+  dom$vld <- limp_abrev(dom$vld, abrev_vld)
+  dom$num <- limpieza0(dom$num)
+  if(dom$num != "")
+    dom$num <- as.character(as.numeric(dom$num))
+
   # Si no hay número exterior, verifica si no está incluido en la vialidad,
   # cuando se especifica sin número no aplica.
-  if(!"num" %in% colnames(dom) || (limpieza0(dom$num) == "" && !numero_SN(dom$num))) {
+  # también separar los casos de vialidad con entrecalles.
+  if(dom$num == "" && !numero_SN(dom$num) && dom$vld != "") {
     q <- calle_partir(dom$vld)
     if(!is.na(q[1])) {
       dom$vld <- q[1]
-      dom$num <- q[2]
+    }
+    if(!is.na(q[2])) {
+      dom$num <- q[2] # Se crea el número
+      alcance$num <- TRUE # Se declara en alcance
+    }
+    if(!is.na(q[4])) {
+      dom$ref1 <- q[5]
+      dom$ref2 <- q[4]
+      alcance$ref1 <- TRUE
+      alcance$ref2 <- TRUE
+    } else if(!is.na(q[5])) {
+      dom$ref1 <- q[5]
+      alcance$ref1 <- TRUE
     }
   }
 
   r_mun <- identifica_mun(dom$mun)
   ad <- r_mun
+
+  if(dom$loc == "" && dom$snt == "" && dom$vld == "")
+    return(ad[c(6, 1, 2, 3, 4, 5)])
+
   i <- length(r_mun$cve)
   while(i > 0) {
-    r_loc <- identifica_loc(dom$loc, r_mun[i,]$cve, r_mun[i,]$BM)
+    if(dom$loc == "") {
+      r_loc <- identifica_locurb(r_mun[i,]$cve, r_mun[i,]$BM)
+    } else {
+      r_loc <- identifica_loc(dom$loc, r_mun[i,]$cve, r_mun[i,]$BM)
+    }
     ad <- rbind(ad, r_loc)
+
+    if(dom$snt == "" && dom$vld == "") {
+      i <- i - 1
+      next
+    }
+
     j <- length(r_loc$cve)
     while(j > 0) {
-      dom.snt <- dom$snt
-      r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM)
-      ad <- rbind(ad, r_snt)
-      if("tsnt" %in% colnames(dom)) {
-        dom.snt <- paste(dom$tsnt, dom.snt)
+      if(alcance$tsnt && dom$tsnt != "") {
+        dom.snt <- paste(dom$tsnt, dom$snt)
+        r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM)
+        ad <- rbind(ad, r_snt)
+      } else {
+        r_snt <- identifica_snt(dom$snt, r_loc[j,]$cve, r_loc[j,]$BM)
+        ad <- rbind(ad, r_snt)
       }
-      r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM)
-      ad <- rbind(ad, r_snt)
+      if(dom$vld != "") {
+        # Si tenemos multiplicidad de asentamientos, inlcuir cada uno
+        # y ademaś el caso sin considerarlo, cuando fracase.
+        r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_snt)
+        if(!is.null(r_snt) & (is.null(r_vld) | min(r_vld$BM) != 0)) {
+          r_vld0 <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM)
+          r_vld <- rbind(r_vld, r_vld0)
+        }
+        ad <- rbind(ad, r_vld)
 
-      r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM)
-      ad <- rbind(ad, r_vld)
-      k <- length(r_vld$cve)
-      while(k > 0) {
-        if("ref1" %in% colnames(dom)) {
-          r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
-          ad <- rbind(ad, r_ref1)
+        k <- length(r_vld$cve)
+        while(k > 0) {
+          if(alcance$ref1 && dom$ref1 != "" && limpieza(dom$ref1) != "") {
+            r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+            ad <- rbind(ad, r_ref1)
+          }
+          if(alcance$ref2 && dom$ref2 != "" && limpieza(dom$ref2) != "") {
+            r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+            ad <- rbind(ad, r_ref2)
+          }
+          if(alcance$num && dom$num != "" && limpieza0(dom$num) != "") {
+            r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+            ad <- rbind(ad, r_num)
+          }
+          k <- k - 1
         }
-        if("ref2" %in% colnames(dom)) {
-          r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
-          ad <- rbind(ad, r_ref2)
-        }
-        if("num" %in% colnames(dom)) {
-          r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
-          ad <- rbind(ad, r_num)
-        }
-        k <- k - 1
       }
-      
+
       #
       # Alternativas de localidad en misma zona conurbada
       # puede alterar el municipio
@@ -299,31 +520,40 @@ identifica <- function (dom, map = FALSE) {
 
       cj <- length(co$cve)
       while(cj > 0) {
-        dom.snt <- dom$snt
-        r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM)
-        ad <- rbind(ad, r_snt)
-        if("tsnt" %in% colnames(dom)) {
-          dom.snt <- paste(dom$tsnt, dom.snt)
+        if(alcance$tsnt && dom$tsnt != "") {
+          dom.snt <- paste(dom$tsnt, dom$snt)
+          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM)
+          ad <- rbind(ad, r_snt)
+        } else {
+          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM)
+          ad <- rbind(ad, r_snt)
         }
-        r_snt <- identifica_snt(dom.snt, co[cj,]$cve, r_loc[j,]$BM)
-        ad <- rbind(ad, r_snt)
-        r_vld <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM)
-        ad <- rbind(ad, r_vld)
-        k <- length(r_vld$cve)
-        while(k > 0) {
-          if("ref1" %in% colnames(dom)) {
-            r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
-            ad <- rbind(ad, r_ref1)
+
+        if(dom$vld != "") {
+          # Similar al anterior, probando con localidades hermanas
+          r_vld <- identifica_vld(dom$vld, co[cj,]$cve, co[cj,]$BM, r_snt)
+          if(!is.null(r_snt) & (is.null(r_vld) | min(r_vld$BM) != 0)) {
+            r_vld0 <- identifica_vld(dom$vld, co[cj,]$cve, co[cj,]$BM)
+            r_vld <- rbind(r_vld, r_vld0)
           }
-          if("ref2" %in% colnames(dom)) {
-            r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
-            ad <- rbind(ad, r_ref2)
+          ad <- rbind(ad, r_vld)
+          
+          k <- length(r_vld$cve)
+          while(k > 0) {
+            if(alcance$ref1 && dom$ref1 != "" && limpieza(dom$ref1) != "") {
+              r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+              ad <- rbind(ad, r_ref1)
+            }
+            if(alcance$ref2 && dom$ref2 != "" && limpieza(dom$ref2) != "") {
+              r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+              ad <- rbind(ad, r_ref2)
+            }
+            if(alcance$num && dom$num != "" && limpieza0(dom$num) != "") {
+              r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+              ad <- rbind(ad, r_num)
+            }
+            k <- k - 1
           }
-          if("num" %in% colnames(dom)) {
-            r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
-            ad <- rbind(ad, r_num)
-          }
-          k <- k - 1
         }
         cj <- cj - 1
       }
@@ -332,8 +562,8 @@ identifica <- function (dom, map = FALSE) {
     }
     # Intercambia localidad y colonia,
     # solo sí son de nombre distinto.
-    destino = limpieza(dom$snt)
-    if (! is.na(dom$snt) && destino != "" && destino != "." && destino != ".." &&
+    destino <- limpieza(dom$snt)
+    if (dom$snt != "" && destino != "" && destino != "." && destino != ".." &&
         destino != limpieza(dom$loc) ) {
       r_loc <- identifica_loc(dom$snt, r_mun[i,]$cve, r_mun[i,]$BM)
       ad <- rbind(ad, r_loc)
@@ -341,23 +571,28 @@ identifica <- function (dom, map = FALSE) {
       while(j > 0) {
         r_snt <- identifica_snt(dom$loc, r_loc[j,]$cve, r_loc[j,]$BM)
         ad <- rbind(ad, r_snt)
-        r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM)
-        ad <- rbind(ad, r_vld)
-        k <- length(r_vld$cve)
-        while(k > 0) {
-          if("ref1" %in% colnames(dom)) {
-            r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
-            ad <- rbind(ad, r_ref1)
+        r_snt <- identifica_snt(dom$snt, r_loc[j,]$cve, r_loc[j,]$BM)
+        ad <- rbind(ad, r_snt)
+        if(dom$vld != "") {
+          # Hay dos candidatos de asentamiento, por eso no se usa
+          r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM)
+          ad <- rbind(ad, r_vld)
+          k <- length(r_vld$cve)
+          while(k > 0) {
+            if(alcance$ref1 && dom$ref1 != "" && limpieza(dom$ref1) != "") {
+              r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+              ad <- rbind(ad, r_ref1)
+            }
+            if(alcance$ref2 && dom$ref2 != "" && limpieza(dom$ref2) != "") {
+              r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+              ad <- rbind(ad, r_ref2)
+            }
+            if(alcance$num && dom$num != "" && limpieza0(dom$num) != "") {
+              r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+              ad <- rbind(ad, r_num)
+            }
+            k <- k - 1
           }
-          if("ref2" %in% colnames(dom)) {
-            r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
-            ad <- rbind(ad, r_ref2)
-          }
-          if("num" %in% colnames(dom)) {
-            r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
-            ad <- rbind(ad, r_num)
-          }
-          k <- k - 1
         }
         #
         # Alternativas de localidad en misma zona conurbada
@@ -365,34 +600,42 @@ identifica <- function (dom, map = FALSE) {
         co <- conurbación(r_loc[j,]$cve) 
         # Agregar a la lista tales municipios
         ad <- rbind(ad, co)
-        
+
         cj <- length(co$cve)
         while(cj > 0) {
-          dom.snt <- dom$snt
-          r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM)
+          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM)
           ad <- rbind(ad, r_snt)
-          if("tsnt" %in% colnames(dom)) {
-            dom.snt <- paste(dom$tsnt, dom.snt)
+          if(alcance$tsnt && dom$tsnt != "") {
+            dom.snt <- paste(dom$tsnt, dom$snt)
+            r_snt <- identifica_snt(dom.snt, co[cj,]$cve, r_loc[j,]$BM)
+            ad <- rbind(ad, r_snt)
           }
-          r_snt <- identifica_snt(dom.snt, co[cj,]$cve, r_loc[j,]$BM)
-          ad <- rbind(ad, r_snt)
-          r_vld <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM)
-          ad <- rbind(ad, r_vld)
-          k <- length(r_vld$cve)
-          while(k > 0) {
-            if("ref1" %in% colnames(dom)) {
-              r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
-              ad <- rbind(ad, r_ref1)
+
+          if(dom$vld != "") {
+            # Identico al primer caso
+            r_vld <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM, r_snt)
+            if(!is.null(r_snt) & (is.null(r_vld) | min(r_vld$BM) != 0)) {
+              r_vld0 <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM)
+              r_vld <- rbind(r_vld, r_vld0)
             }
-            if("ref2" %in% colnames(dom)) {
-              r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
-              ad <- rbind(ad, r_ref2)
+            ad <- rbind(ad, r_vld)
+
+            k <- length(r_vld$cve)
+            while(k > 0) {
+              if(alcance$ref1 && dom$ref1 != "" && limpieza(dom$ref1) != "") {
+                r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+                ad <- rbind(ad, r_ref1)
+              }
+              if(alcance$ref2 && dom$ref2 != "" && limpieza(dom$ref2) != "") {
+                r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+                ad <- rbind(ad, r_ref2)
+              }
+              if(alcance$num && dom$num != "" && limpieza0(dom$num) != "") {
+                r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+                ad <- rbind(ad, r_num)
+              }
+              k <- k - 1
             }
-            if("num" %in% colnames(dom)) {
-              r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
-              ad <- rbind(ad, r_num)
-            }
-            k <- k - 1
           }
           cj <- cj - 1
         }
@@ -400,7 +643,6 @@ identifica <- function (dom, map = FALSE) {
         j <- j - 1
       }
     }
-    #
     i <- i - 1
   }
   if(map)
@@ -493,8 +735,11 @@ podar <- function (Ts, map = FALSE) {
   # Pega la información de la mejor opción
   Us <- rbind(M0, M1, R02, R04, R05, M2, R24, R25, M3, M4, R45, M5)
   # Eliminar renglones sin coordenadas
-  Us <- Us[which(! is.na(Us$lat)), ]
-  Us <- Us[which(! is.na(Us$lon)), ]
+  # Nota: Por esto es importante que todos los razgos tengan asociada
+  # una coordenada geográfica, al menos en la base de datos; principalmente
+  # en el caso de las vialidades.
+  Us <- Us[which(!is.na(Us$lat)), ]
+  Us <- Us[which(!is.na(Us$lon)), ]
 
   # Elimina en nivel cero, si no hay ninguna probabilidad de éxito
   Us <- Us[which(!(Us$niv == 0 & Us$BM == 1)), ]
@@ -517,30 +762,37 @@ atomizar <- function (Ts, map = FALSE) {
   T4 <- Ts[which(Ts$niv == 4), ]
   T5 <- Ts[which(Ts$niv == 5), ]
   Ta <- NULL
-  if(length(T0$BM) > 0 && T0$BM == 0) {
+  if(length(T0$BM) > 0 && any(T0$BM == 0)) {
+    # Número exterior exacto
     Ta <- T0[which(T0$BM == 0), ][1, ]
-  } else if(length(T1$BM) > 0 && T1$BM == 0) {
+  } else if(length(T1$BM) > 0 && any(T1$BM == 0)) {
     # Promedia las coordenadas si proporciona las dos entrecalles correctamente
     Ta <- T1[which(T1$BM == 0), ]
     Ta[1,]$lat <- mean(Ta$lat)
     Ta[1,]$lon <- mean(Ta$lon)
     Ta <- Ta[1,]
-    
-  } else if(length(T2$BM) > 0 && T2$BM == 0) {
-    if(length(T0$BM) > 0 && T0$BM < 0.12) {
+  } else if(length(T2$BM) > 0 && any(T2$BM == 0)) { # Cuando hay una calle correcta
+    if(length(T0$BM) > 0 && any(T0$BM < 0.12)) {
       # Promedia las coordenadas si hay más de 1
       Ta <- T0[which(T0$BM < 0.12), ]
       Ta[1,]$lat <- mean(Ta$lat)
       Ta[1,]$lon <- mean(Ta$lon)
       Ta <- Ta[1,]
     } else {
-      Ta <- T2[which(T2$BM == 0), ][1, ]
+      # Proporciona la calle [order(T2$cve),]
+      # Último Ta[length(Ta),]
+      Ta <- T2[which(T2$BM == 0), ][1,]
     }
-  } else if(length(T3$BM) > 0 && T3$BM == 0) {
-    Ta <- T3[which(T3$BM == 0), ][1, ]
-  } else if(length(T4$BM) > 0 && T4$BM < 0.1) {
-    if(length(T2$BM) > 0 && T2$BM < 0.1) {
-      if(length(T0$BM) > 0 && T0$BM < 0.12) {
+  } else if(length(T3$BM) > 0 && any(T3$BM == 0)) {
+    if(length(T2$BM) > 0 && any(T2$BM < 0.1)){
+      Ta <- T2[which(T2$BM < 0.1), ][1, ]
+    } else {
+      # Se queda con la colonia
+      Ta <- T3[which(T3$BM == 0), ][1, ]
+    }
+  } else if(length(T4$BM) > 0 && any(T4$BM < 0.15)) {
+    if(length(T2$BM) > 0 && any(T2$BM < 0.1)) {
+      if(length(T0$BM) > 0 && any(T0$BM < 0.12)) {
         Ta <- T0[which(T0$BM < 0.12), ]
         Ta[1,]$lat <- mean(Ta$lat)
         Ta[1,]$lon <- mean(Ta$lon)
@@ -548,10 +800,10 @@ atomizar <- function (Ts, map = FALSE) {
       } else {
         Ta <- T2[which(T2$BM < 0.1), ][1, ]
       }
-    } else if(length(T3$BM) > 0 && T3$BM < 0.1) {
+    } else if(length(T3$BM) > 0 && any(T3$BM < 0.1)) {
       Ta <- T3[which(T3$BM < 0.1), ][1, ]
     } else {
-      Ta <- T4[which(T4$BM < 0.1), ][1, ]
+      Ta <- T4[which(T4$BM < 0.15), ][1, ]
     }
   }
   if(is.null(Ta)) {
@@ -563,27 +815,98 @@ atomizar <- function (Ts, map = FALSE) {
 }
 
 #-------------------------------------------------------------------
-# Ejecuta el procedimiento sobre el archivo de direcciones y lo
-# guarda en un archivo separado.
-main <- function (path, sheet = 1, file, paralelo = FALSE) {
-  map.is.visible <<- FALSE
-  # Procesamiento por lote
+# Lee el archivo de trabajo y realiza la normalización de los datos
+lee <- function(path, sheet = 1) {
   require(readxl)
   matricula <- read_excel(path, sheet)
 
+  # Normaliza la tabla para que contenga los campos requeridos
+  numera <- "n" %in% colnames(matricula)
+  alcance0 <<- list(mun = "mun"  %in% colnames(matricula), loc = "loc" %in% colnames(matricula),
+                  tsnt = "tsnt" %in% colnames(matricula), snt = "snt" %in% colnames(matricula), 
+                  tvld = "tvld" %in% colnames(matricula), vld = "vld" %in% colnames(matricula),
+                  num = "num"  %in% colnames(matricula), int = "int" %in% colnames(matricula),
+                  ref1 = "ref1" %in% colnames(matricula), ref2 = "ref2" %in% colnames(matricula),
+                  CP = "CP"   %in% colnames(matricula))
+  # Completa con las columnas vacias donde no se tenga información
+  if(!alcance0$mun)
+    return
+  if(!alcance0$loc)
+    matricula$loc <- ""
+  if(!alcance0$snt)
+    matricula$snt <- ""
+  if(!alcance0$vld)
+    matricula$vld <- ""
+  if(!alcance0$num)
+    matricula$num <- ""
+
+  # Crea el índice, si no tiene.
+  if(!numera) {
+    matricula$n <- 0
+    for(n in 1:length(matricula[,1]))
+      matricula[n,]$n <- n
+  }
+
+  # Listado de variables disponibles
+  vars <- c("n","mun","loc", "snt", "vld", "num")
+  if(alcance0$tsnt)
+    vars <- c(vars, "tsnt")
+  if(alcance0$tvld)
+    vars <- c(vars, "tvld")
+  if(alcance0$int)
+    vars <- c(vars, "int")
+  if(alcance0$ref1)
+    vars <- c(vars, "ref1")
+  if(alcance0$ref2)
+    vars <- c(vars, "ref2")
+  if(alcance0$CP)
+    vars <- c(vars, "CP")
+
+  # Construlle una base basado en las columnas con las que se cuentan
+  # minimiza la carga de memoria durante el procesamiento
+  matricula <- matricula[,vars]
+
+  # Quita los renglones vacíos, basado en el campo municipio
+  matricula <- matricula[which(!is.na(matricula$mun)),]
+  matricula$mun <- limpieza(matricula$mun)
+  matricula <- matricula[which(matricula$mun != ""), ]
+
+  # Remplaza los resultados NA por cadena vacía
+  # Simplifica el código al no tener que hacer doble verificación
+  matricula[is.na(matricula)] <- ""
+
+  return(matricula) 
+}
+
+#-------------------------------------------------------------------
+# Ejecuta el procedimiento sobre el archivo de direcciones y lo
+# guarda en un archivo separado.
+main <- function (path, sheet = 1, file, paralelo = FALSE) {
+  # Oculta los mensajes, ocultar en depuración
+  options(show.error.messages = FALSE)
+  map.is.visible <<- FALSE
+
+  # Procesamiento por lote
+  matricula <- lee(path, sheet)
+
+  # Procesamiento en paralelo y secuencial
+  require(plyr)
   if(paralelo) {
     require(doParallel)
     registerDoParallel(cores = (detectCores() - 1))
   }
-  require(plyr)
   res <- ldply(1:length(matricula$mun), function(n) {
-    # Procesa la dirección y obtiene la coordenada geográfica probable
-    c <- atomizar(podar(identifica(matricula[n,])))
-    c$n <- n #Agrega el número de renglón
-    c
+      # Procesa la dirección y obtiene la coordenada geográfica probable
+      c <- try(atomizar(podar(identifica(matricula[n,]))), silent = TRUE)
+      if(class(c) == "try-error") {
+        c <- data.frame(niv=-2, BM=0, cve=0, nombre=0, lat=0, lon = 0)
+      }
+      #Agrega el número de renglón
+      c$n <-matricula[n,]$n
+      c
   }, .parallel = paralelo, .progress = "time")
-
-  # Guarda en el sentido inverso en el que fue generado (orden lógico)
+  options(show.error.messages = TRUE)
+  # Guarda en el sentido en el que fue generado (orden lógico)
   # Intercambia el orden de las columnas
   require(openxlsx)
   write.xlsx(res[c(7, 1:6)], file)
@@ -591,3 +914,12 @@ main <- function (path, sheet = 1, file, paralelo = FALSE) {
 
 #
 # http://seananderson.ca/2013/12/01/plyr.html
+
+#
+# ¿Cuántos arboles de desición distintos se pueden formar con n atributos booleanos?
+# 2^(2^n), con n = 8, tenemos 2 ^ (225) = 1.157920892×10⁷⁷
+# ¿Cuántos árboles de profundidad unitaria (capa de decisión)?
+# 4n
+#
+# P.D. La estrategia utilizada fue diseñar un árbol de desición en papel, y programar
+# cada nodo por separado.

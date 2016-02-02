@@ -16,6 +16,13 @@ loc.php <- function(m = "015") {
   d
 }
 
+loc2.php <- function(m = "015") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste("SELECT cve_loc, nombre FROM localidad2 WHERE cve_mun = '", m,"' ORDER BY nombre;", sep = "") )
+  odbcClose(dbconn)
+  d
+}
+
 #Asentamiento
 #Incorpora el tipo de asentamiento
 col.php <- function(m = "015", l = "0001") {
@@ -41,15 +48,23 @@ cal.php <- function(m = "015", l = "0001") {
   rbind(d[c(1, 2)], d0)
 }
 
+cal2.php <- function(m = "015", l = "0001") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste("SELECT cve_via, descripcion || ' ' || nom_via as nom_via, nom_via as nom_via0, lat, lon FROM vialidad as v, cat_vialidad as c WHERE cve_mun = '", m, "' AND cve_loc = '", l, "' AND es_llave AND v.cve_tipo_vial = c.cve_tipo_vial ORDER BY nom_via;", sep = "") )
+  odbcClose(dbconn)
+  d
+}
+
 #Número exterior
 #Incorpora calles homónimas
+#Se corrige, intercamniando las claves por la clave única.
 num.php <- function(c = "27000101583") {
   dbconn <- odbcConnect("local")
   d <- sqlQuery(dbconn, paste(
     "(SELECT lat, lon, num FROM geocode1 WHERE cve_via IN ",
-    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ")) UNION ",
+    "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, ")) UNION ",
     "(SELECT lat, lon, num FROM geocode0 WHERE cve_via IN ",
-    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, "));", sep = ""))
+    "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, "));", sep = ""))
   odbcClose(dbconn)
   d
 }
@@ -81,11 +96,12 @@ gloc.php <- function(m = "015", l = "0001") {
   d
 }
 
-# Proporciona la colonia
+# Proporciona las coordenadas del centroide interno de la colonia
+# incluye el radio maximo al contorno.
 gcol.php <- function(c = "0780") {
   dbconn <- odbcConnect("local")
   d <- sqlQuery(dbconn, paste(
-    "SELECT lat, lon FROM colonia WHERE cve_asen = '", c, "' ;", sep = ""))
+    "SELECT lat, lon, radio FROM colonia WHERE cve_asen = '", c, "' ;", sep = ""))
   odbcClose(dbconn)
   d
 }
@@ -100,13 +116,13 @@ gcal.php <- function(c = 15006700440) {
 }
 
 # Direcciones almacenadas
-gn.php <- function(c = "27000101583", n="1") {
+gn.php <- function(c = "27000101583", n = "1") {
   dbconn <- odbcConnect("local")
   d <- sqlQuery(dbconn, paste(
     "(SELECT lat, lon FROM geocode1 WHERE cve_via IN ",
-    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") AND num = '", n, "') UNION ",
+    "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, ") AND num LIKE '", n, "') UNION ",
     "(SELECT lat, lon FROM geocode0 WHERE cve_via IN ",
-    "(SELECT cve_via FROM vialidad WHERE via_unica = ", c, ") AND num = '", n, "');", sep = ""))
+    "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, ") AND num LIKE '", n, "');", sep = ""))
   odbcClose(dbconn)
   d
 }
@@ -193,7 +209,7 @@ conurbación <- function(r_loc.cve_loc = "0150001") {
     d <- data.frame(d, lat, lon)  
     colnames(d)[3] <- "nombre"
     d$niv <- 4
-    d$BM <- 1.0
+    d$BM <- 0.0
     d$cve <- d$l
     d[c(6, 7, 8, 3, 4, 5)]
   } else{
@@ -217,7 +233,7 @@ conurbación <- function(r_loc.cve_loc = "0150001") {
 #Database = *
 #Username = **
 #Password = ***
-#Protocol = 9.3.9
+#Protocol = 9.3.10
 #ReadOnly = 0
 #
 #[ODBC]
@@ -225,3 +241,9 @@ conurbación <- function(r_loc.cve_loc = "0150001") {
 
 # Iniciar la aplicación con:
 #> odbcinst -q -d
+
+# 16 de octubre de 2015
+# @TODO actualizar, respaldar y distribuir la nueve versión.
+# En tabla colonias se hicieron cambios
+# cve_asen '0085' conservada
+# Rep con 5424, el 5424 014 "San Antonio del Carmen" 7 014-001 014-0887 484 mt. CP 37800
