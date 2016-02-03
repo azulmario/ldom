@@ -7,17 +7,18 @@ main(path = "FALTAS.xlsx", file = "tempD.xlsx", paralelo = TRUE)
 
 # /usr/bin/Rscript t20160120.R --vanilla &
 
-path = "FALTAS.xlsx"
-path = "padron2012_2015.xlsx"
+path = "padron15.xls"
 file = "tempA.xlsx"
 paralelo = FALSE
 sheet = 1
 
 matricula <- lee(path, sheet)
 
-n = 2
+n = 1
 dom = matricula[n,]
 map = TRUE
+
+dom.mun = dom$mun
 
 a <- identifica(dom)
 b <- podar(a)

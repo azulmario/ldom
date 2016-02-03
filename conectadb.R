@@ -5,6 +5,7 @@ mun.php <- function() {
   dbconn <- odbcConnect("local")
   d <- sqlQuery(dbconn, "SELECT * FROM municipio;")
   odbcClose(dbconn)
+  colnames(d)[1] <- "cve"
   d
 }
 

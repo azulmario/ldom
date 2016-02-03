@@ -42,23 +42,21 @@ identifica_mun <- function(dom.mun) {
   if(is.null(Cachelist_mun)) {
     origen <- mun.php()
     origen$nombre <- limpieza(as.character(origen$nombre))
+    origen$cve <- mapply(str_pad, origen$cve, 3, pad = "0")
+    d <- mapply(gloc.php, origen$cve)
+    lat <- as.numeric(d[1,])
+    lon <- as.numeric(d[2,])
+    origen <- data.frame(origen, lat, lon)
     Cachelist_mun <<- origen
   } else {
     origen <- Cachelist_mun
   }
   destino <- limpieza(dom.mun)
   # 0 <= p <= 0.25
-  BM <- stringdistmatrix(origen$nombre, destino, method="jw", p = 0.1)
-  BM <- cbind(BM,origen)
-  BM <- BM[with(BM, order(BM)), ]
+  BM <- stringdistmatrix(origen$nombre, destino, method="jw", p = 0.1) # Calcula distancias
+  BM <- cbind(BM,origen) # Pega los datos
+  r_mun <- BM[BM[,1] <= 0.05+min(BM[,1]),] # Obtiene el mínimo
 
-  r_mun <- BM[BM[,1] <= 0.05+min(BM[,1]),]
-  m <- mapply(str_pad, r_mun$cve_mun, 3, pad = "0")
-  d <- mapply(gloc.php, m)
-  lat <- as.numeric(d[1,])
-  lon <- as.numeric(d[2,])
-  r_mun <- data.frame(r_mun, lat, lon)  
-  colnames(r_mun)[2] <- "cve"
   if(map.is.visible) {
     hace_mapa(r_mun, 11)
   }
@@ -112,8 +110,7 @@ identifica_loc <- function(dom.loc, r_mun.cve_mun, r_mun.BM) {
     }
     r_loc$niv <- 4
     r_loc$BM <- 1.0 - (1.0 - r_loc$BM) * (1.0 - r_mun.BM)
-    #r_loc$TM <- 0L
-    r_loc$cve <- paste (m, l, sep = "")
+    r_loc$cve <- paste (m, l, sep = "") # Clave de localidad
     r_loc
   } else {
     NULL
@@ -195,15 +192,13 @@ identifica_locurb <- function(r_mun.cve_mun, r_mun.BM) {
     }
     r_loc$niv <- 4
     r_loc$BM <- r_mun.BM
-    #r_loc$TM <- 0L
-    r_loc$cve <- paste (m, l, sep = "")
+    r_loc$cve <- paste (m, l, sep = "") # Clave de localidad
 
     r_loc[c(6,1,2,3,4,5)]
   } else {
     NULL
   }
 }
-
 
 #-------------------------------------------------------------------
 # Tercero identifica la colonia
@@ -229,10 +224,10 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM) {
     if(map.is.visible & length(lat) > 0) {
       hace_mapa(r_snt, 15)
     }
-    r_snt$cve <- paste("[", radio,",",as.integer(r_loc.cve_loc), ",", as.integer(r_snt$cve), "]", sep = "")
+    # Clave de asentamiento
+    r_snt$cve <- paste("[",as.integer(r_loc.cve_loc), ",", as.integer(r_snt$cve), ",", radio, "]", sep = "")
     r_snt$niv <- 3
     r_snt$BM <- 1.0 - (1.0 - r_snt$BM) * (1.0 - r_loc.BM)
-    #r_snt$TM <- 0L
     r_snt
   } else {
     NULL
@@ -273,7 +268,7 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM, r_snt = NULL) {
           }
           cv <- cv - 1
         }
-        r <- max(r, fromJSON(r_snt$cve[cs])[1])
+        r <- max(r, fromJSON(r_snt$cve[cs])[3]) # Utiliza el radio como influencia
         cs <- cs - 1
       }
       origen <- origen[!is.na(origen[,6]) & origen[,6] <= 4*r,]
@@ -305,7 +300,6 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM, r_snt = NULL) {
     }
     r_vld$niv <- 2
     r_vld$BM <- 1.0 - (1.0 - min(r_vld$B, r_vld$M)) * (1.0 - r_loc.BM)
-    #r_vld$TM <- 0L
     r_vld[,c(10,1,2,4,5,9)]
   } else {
     NULL
@@ -337,7 +331,6 @@ identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
     }
     r_ref$niv <- 1
     r_ref$BM <- 1.0 - (1.0 - r_ref$BM) * (1.0 - r_vld.BM)
-    #r_ref$TM <- 0L
     r_ref
   } else {
     NULL
@@ -371,7 +364,6 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
     }
     r_num$niv <- 0
     r_num$BM <- 1.0 - (1.0 - r_num$BM) * (1.0 - r_vld.BM)
-    #r_num$TM <- 0L
     r_num[c(2,1,5,3,4,6)]
     } else {
     NULL
