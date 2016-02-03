@@ -52,10 +52,11 @@ identifica_mun <- function(dom.mun) {
     origen <- Cachelist_mun
   }
 
+  # Calcula distancias
   # 0 <= p <= 0.25
-  BM <- stringdistmatrix(origen$nombre, limpieza(dom.mun), method="jw", p = 0.1) # Calcula distancias
+  BM <- stringdistmatrix(origen$nombre, dom.mun, method="jw", p = 0.1)
   BM <- cbind(BM,origen) # Pega los datos
-  r_mun <- BM[BM[,1] <= 0.05+min(BM[,1]),] # Obtiene el mínimo
+  r_mun <- BM[BM[,1] <= 0.05 + min(BM[,1]),] # Obtiene el mínimo
 
   if(map.is.visible) {
     hace_mapa(r_mun, 11)
@@ -67,50 +68,45 @@ identifica_mun <- function(dom.mun) {
 # Manejo de cache para el listado de localidades de cada municipio
 Cachelist_loc <- vector(mode = "list", length = 46)
 # Regresa el listado de localidades, consuderanto el uso de dos nombres
-list_loc <- function(cve_mun = 1L) {
-  if(is.null(Cachelist_loc[[cve_mun]])) {
-    m <- str_pad(cve_mun, 3, pad = "0")
-    origen1 <- loc.php(m)
-    origen2 <- loc2.php(m)
+list_loc <- function(cve_mun = "001") {
+  if(is.null(Cachelist_loc[[as.numeric(cve_mun)]])) {
+    origen1 <- loc.php(cve_mun)
+    origen2 <- loc2.php(cve_mun)
     origen3 <- cbind(origen2, as.data.frame(localidad_partir(as.vector(origen2$nombre))))
     origen4 <- data.frame(origen3$cve_loc, origen3$V1)
     origen5 <- data.frame(origen3$cve_loc, origen3$V2)
     colnames(origen5) <- colnames(origen4) <- c("cve_loc", "nombre")
     origen <- rbind(origen1, origen4, origen5)
     origen$nombre <- limpieza(as.character(origen$nombre))
-    Cachelist_loc[[cve_mun]] <<- origen
+    origen$cve_loc <- mapply(str_pad, origen$cve_loc, 4, pad = "0") # str_pad(r_loc.cve_loc, 4, pad = "0"))
+    d <- mapply(gloc.php, cve_mun, origen$cve_loc)
+    lat <- as.numeric(d[1,])
+    lon <- as.numeric(d[2,])
+    origen <- data.frame(origen, lat, lon)
+    colnames(origen)[1] <- "cve"
+    Cachelist_loc[[as.numeric(cve_mun)]] <<- origen
   }
-  return(Cachelist_loc[[cve_mun]])
+  return(Cachelist_loc[[as.numeric(cve_mun)]])
 }
 
 #-------------------------------------------------------------------
 # Segundo identifica la localidad
 # Nota: Considerar permuta con colonia, principalmente en zona rural
-identifica_loc <- function(dom.loc, r_mun.cve_mun, r_mun.BM) {
+identifica_loc <- function(dom.loc, r_mun.cve_mun, r_mun.BM, r_mun.nombre) {
   origen <- list_loc(r_mun.cve_mun)
   
   if(length(origen$nombre) > 0  && ! is.na(dom.loc) && dom.loc != '') {
-    destino = limpieza(dom.loc)
-
-    BM <- stringdistmatrix(origen$nombre, destino, method="jw", p = 0.1)
+    BM <- stringdistmatrix(origen$nombre, dom.loc, method="jw", p = 0.1)
     BM <- cbind(BM,origen)
-    BM <- BM[with(BM, order(BM)), ]
+    r_loc <- BM[BM[,1] <= 0.05 + min(BM[,1]),]
 
-    r_loc <- BM[BM[,1] <= 0.05+min(BM[,1]),]
-    m <- mapply(str_pad, r_mun.cve_mun, 3, pad = "0") # str_pad(r_mun.cve_mun, 3, pad = "0")
-    l <- mapply(str_pad, r_loc$cve_loc, 4, pad = "0") # str_pad(r_loc.cve_loc, 4, pad = "0"))
-    d <- mapply(gloc.php, m, l)
-    lat <- as.numeric(d[1,])
-    lon <- as.numeric(d[2,])
-    r_loc <- data.frame(r_loc, lat, lon)  
-    colnames(r_loc)[2] <- "cve"
-    colnames(r_loc)[3] <- "nombre"
-    if(map.is.visible & length(lat) > 0) {
+    if(map.is.visible & length(r_loc$lat) > 0) {
       hace_mapa(r_loc, 13)
     }
     r_loc$niv <- 4
-    r_loc$BM <- 1.0 - (1.0 - r_loc$BM) * (1.0 - r_mun.BM)
-    r_loc$cve <- paste (m, l, sep = "") # Clave de localidad
+    r_loc$BM <- 1.0 - (1.0 - r_loc$BM) * (1.0 - r_mun.BM) # Teorema de Bayes
+    r_loc$nombre <- paste (r_mun.nombre, r_loc$nombre, sep = ", ") # Nombre de localidad
+    r_loc$cve <- paste (r_mun.cve_mun, r_loc$cve, sep = "") # Clave de localidad
     r_loc
   } else {
     NULL
@@ -121,11 +117,10 @@ identifica_loc <- function(dom.loc, r_mun.cve_mun, r_mun.BM) {
 # En el caso de no declarar la localidad, y debido a su importancia
 # se busca en las localidades urbanas, descartando el resto.
 # Se asegura que se busque, pero sin exagerar.
-identifica_locurb <- function(r_mun.cve_mun, r_mun.BM) {
-  origen <- loc.php(m = str_pad(r_mun.cve_mun, 3, pad = "0"))
+identifica_locurb <- function(r_mun.cve_mun, r_mun.BM, r_mun.nombre) {
+  origen <- loc.php(m = r_mun.cve_mun)
   if(length(origen$nombre) > 0) {
-    origen$nombre <- limpieza(as.character(origen$nombre))
-    zurb <- switch(r_mun.cve_mun,
+    zurb <- switch(as.numeric(r_mun.cve_mun),
                   c(1,117),
                   c(1,17,27,47),
                   c(1,67,192,236,244,306,591),
@@ -191,8 +186,9 @@ identifica_locurb <- function(r_mun.cve_mun, r_mun.BM) {
       hace_mapa(r_loc, 13)
     }
     r_loc$niv <- 4
-    r_loc$BM <- r_mun.BM
+    r_loc$BM <- 1.0 - (1.0 - r_mun.BM) * (1.0 - 1e-7) 
     r_loc$cve <- paste (m, l, sep = "") # Clave de localidad
+    r_loc$nombre <- paste (r_mun.nombre, r_loc$nombre, sep = ", ") # Nombre de localidad
 
     r_loc[c(6,1,2,3,4,5)]
   } else {
@@ -454,9 +450,9 @@ identifica <- function (dom, map = FALSE) {
   i <- length(r_mun$cve)
   while(i > 0) {
     if(dom$loc == "") {
-      r_loc <- identifica_locurb(r_mun[i,]$cve, r_mun[i,]$BM)
+      r_loc <- identifica_locurb(r_mun[i,]$cve, r_mun[i,]$BM, r_mun[i,]$nombre)
     } else {
-      r_loc <- identifica_loc(dom$loc, r_mun[i,]$cve, r_mun[i,]$BM)
+      r_loc <- identifica_loc(dom$loc, r_mun[i,]$cve, r_mun[i,]$BM, r_mun[i,]$nombre)
     }
     ad <- rbind(ad, r_loc)
 
@@ -503,11 +499,18 @@ identifica <- function (dom, map = FALSE) {
         }
       }
 
-      #
       # Alternativas de localidad en misma zona conurbada
       # puede alterar el municipio
-      co <- conurbación(r_loc[j,]$cve)
-      # Agregar a la lista tales municipios
+      co2 <- conurbación(r_loc[j,]$cve)
+      co <- NULL
+      # Eliminar aquellas localidades ya consideradas anteriormente
+      for(k in 1:length(co2$cve)) {
+        if(!(any(co2$cve[k] == ad$cve))){
+          co <- rbind(co, co2[k,])
+        }
+      }
+
+      # Agregar a la lista tales localidades conurbadas adicionales
       ad <- rbind(ad, co)
 
       cj <- length(co$cve)
@@ -549,6 +552,7 @@ identifica <- function (dom, map = FALSE) {
         }
         cj <- cj - 1
       }
+
       # Continúa ...
       j <- j - 1
     }
@@ -557,7 +561,7 @@ identifica <- function (dom, map = FALSE) {
     destino <- limpieza(dom$snt)
     if (dom$snt != "" && destino != "" && destino != "." && destino != ".." &&
         destino != limpieza(dom$loc) ) {
-      r_loc <- identifica_loc(dom$snt, r_mun[i,]$cve, r_mun[i,]$BM)
+      r_loc <-identifica_loc(dom$snt, r_mun[i,]$cve, 1.0 - (1.0 - r_mun[i,]$BM) * (1.0 - 1e-7), r_mun[i,]$nombre)
       ad <- rbind(ad, r_loc)
       j <- length(r_loc$cve)
       while(j > 0) {
@@ -589,8 +593,15 @@ identifica <- function (dom, map = FALSE) {
         #
         # Alternativas de localidad en misma zona conurbada
         # puede alterar el municipio
-        co <- conurbación(r_loc[j,]$cve) 
-        # Agregar a la lista tales municipios
+        co2 <- conurbación(r_loc[j,]$cve)
+        co <- NULL
+        # Eliminar aquellas localidades ya consideradas anteriormente
+        for(k in 1:length(co2$cve)) {
+          if(!(any(co2$cve[k] == ad$cve))){
+            co <- rbind(co, co2[k,])
+          }
+        }
+        # Agregar a la lista tales localidades
         ad <- rbind(ad, co)
 
         cj <- length(co$cve)

@@ -192,27 +192,25 @@ gecal.php <- function(c = 15006700440, e = 15006700441) {
 conurbación <- function(r_loc.cve_loc = "0150001") {
   m = substr(r_loc.cve_loc, 1, 3)
   l = substr(r_loc.cve_loc, 4, 7)
-  
+
   dbconn <- odbcConnect("local")
   d <- sqlQuery(dbconn, paste(
-    "SELECT cve_mun AS m, cve_loc AS l, nom_loc FROM cat_localidad WHERE sun IN(",
-    "SELECT sun FROM cat_localidad WHERE cve_mun = '", m,"' AND cve_loc = '", l,"') AND ",
-    "NOT(cve_mun = '", m,"' AND cve_loc = '", l,"')",
+    "SELECT cat_localidad.cve_mun AS m, cat_localidad.cve_loc AS l, cat_municipio.nom_mun, cat_localidad.nom_loc, cat_localidad.lat, cat_localidad.lon ",
+    "FROM cat_localidad, cat_municipio WHERE cat_localidad.cve_mun = cat_municipio.cve_mun AND sun ",
+    "IN(SELECT sun FROM cat_localidad WHERE cat_localidad.cve_mun = '", m,"' AND cat_localidad.cve_loc = '", l,"') AND ",
+    "NOT(cat_localidad.cve_mun = '", m,"' AND cat_localidad.cve_loc = '", l,"') ",
     "ORDER BY nom_loc;", sep = "") )
   odbcClose(dbconn)
   if(length(d$l) > 0) {
     d$m <- mapply(str_pad, d$m, 3, pad = "0")
     d$l <- mapply(str_pad, d$l, 4, pad = "0")
-    x <- mapply(gloc.php, d$m, d$l)
     d$l <- paste (d$m, d$l, sep = "")
-    lat <- as.numeric(x[1,])
-    lon <- as.numeric(x[2,])
-    d <- data.frame(d, lat, lon)  
+    colnames(d)[2] <- "cve"
     colnames(d)[3] <- "nombre"
     d$niv <- 4
-    d$BM <- 0.0
-    d$cve <- d$l
-    d[c(6, 7, 8, 3, 4, 5)]
+    d$BM <- 2e-7
+    d$nombre <- paste (d$nombre, d$nom_loc, sep = ", ") 
+    d[c(7, 8, 2, 3, 5, 6)]
   } else{
     NULL
   }
