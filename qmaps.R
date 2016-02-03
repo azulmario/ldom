@@ -51,9 +51,9 @@ identifica_mun <- function(dom.mun) {
   } else {
     origen <- Cachelist_mun
   }
-  destino <- limpieza(dom.mun)
+
   # 0 <= p <= 0.25
-  BM <- stringdistmatrix(origen$nombre, destino, method="jw", p = 0.1) # Calcula distancias
+  BM <- stringdistmatrix(origen$nombre, limpieza(dom.mun), method="jw", p = 0.1) # Calcula distancias
   BM <- cbind(BM,origen) # Pega los datos
   r_mun <- BM[BM[,1] <= 0.05+min(BM[,1]),] # Obtiene el mínimo
 
