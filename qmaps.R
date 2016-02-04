@@ -198,22 +198,21 @@ identifica_locurb <- function(r_mun.cve_mun, r_mun.BM, r_mun.nombre) {
 
 #-------------------------------------------------------------------
 # Tercero identifica la colonia
-identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM) {
+identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
   origen <- col.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
-  destino = limpieza(dom.snt)
 
-  if(length(origen$nom_asen) > 0  && ! is.na(dom.snt) && destino != "" && destino != "." && destino != "..") {
+  if(length(origen$nom_asen) > 0  && ! is.na(dom.snt) && dom.snt != "" && dom.snt != "." && dom.snt != "..") {
     origen$nom_asen <- limpieza(as.character(origen$nom_asen))
   
-    BM <- stringdistmatrix(origen$nom_asen, destino, method="jw", p = 0.1)
+    BM <- stringdistmatrix(origen$nom_asen, dom.snt, method="jw", p = 0.1)
     BM <- cbind(BM,origen)
-    BM <- BM[with(BM, order(BM)), ]
-
     r_snt <- BM[BM[,1] <= 0.05+min(BM[,1]),]
+
+    # Obtiene las coordenadas y el rado del subconjunto
     d <- sapply(mapply(str_pad, as.character(r_snt$cve_asen), 4, pad = "0"), gcol.php)
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
-    radio <- round(as.numeric(d[3,]), digits = 3)
+    radio <- round(as.numeric(d[3,]), digits = 2)
     r_snt <- data.frame(r_snt, lat, lon)
     colnames(r_snt)[2] <- "cve"
     colnames(r_snt)[3] <- "nombre"
@@ -221,9 +220,10 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM) {
       hace_mapa(r_snt, 15)
     }
     # Clave de asentamiento
-    r_snt$cve <- paste("[",as.integer(r_loc.cve_loc), ",", as.integer(r_snt$cve), ",", radio, "]", sep = "")
+    r_snt$cve <- paste(r_loc.cve_loc, r_snt$cve, radio, sep = ",")
     r_snt$niv <- 3
     r_snt$BM <- 1.0 - (1.0 - r_snt$BM) * (1.0 - r_loc.BM)
+    r_snt$nombre <- paste(r_loc.nombre, r_snt$nombre, sep = ", ") # Nombre de asentamiento
     r_snt
   } else {
     NULL
@@ -264,7 +264,7 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM, r_snt = NULL) {
           }
           cv <- cv - 1
         }
-        r <- max(r, fromJSON(r_snt$cve[cs])[3]) # Utiliza el radio como influencia
+        r <- max(r, fromJSON(paste("[", gsub("^0", "", r_snt$cve[cs]),"]"))[3]) # Utiliza el radio como influencia
         cs <- cs - 1
       }
       origen <- origen[!is.na(origen[,6]) & origen[,6] <= 4*r,]
@@ -465,10 +465,10 @@ identifica <- function (dom, map = FALSE) {
     while(j > 0) {
       if(alcance$tsnt && dom$tsnt != "") {
         dom.snt <- paste(dom$tsnt, dom$snt)
-        r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM)
+        r_snt <- identifica_snt(dom.snt, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre)
         ad <- rbind(ad, r_snt)
       } else {
-        r_snt <- identifica_snt(dom$snt, r_loc[j,]$cve, r_loc[j,]$BM)
+        r_snt <- identifica_snt(dom$snt, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre)
         ad <- rbind(ad, r_snt)
       }
       if(dom$vld != "") {
@@ -517,10 +517,10 @@ identifica <- function (dom, map = FALSE) {
       while(cj > 0) {
         if(alcance$tsnt && dom$tsnt != "") {
           dom.snt <- paste(dom$tsnt, dom$snt)
-          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM)
+          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM, co[cj,]$nombre)
           ad <- rbind(ad, r_snt)
         } else {
-          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM)
+          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM, co[cj,]$nombre)
           ad <- rbind(ad, r_snt)
         }
 
@@ -565,9 +565,9 @@ identifica <- function (dom, map = FALSE) {
       ad <- rbind(ad, r_loc)
       j <- length(r_loc$cve)
       while(j > 0) {
-        r_snt <- identifica_snt(dom$loc, r_loc[j,]$cve, r_loc[j,]$BM)
+        r_snt <- identifica_snt(dom$loc, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre)
         ad <- rbind(ad, r_snt)
-        r_snt <- identifica_snt(dom$snt, r_loc[j,]$cve, r_loc[j,]$BM)
+        r_snt <- identifica_snt(dom$snt, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre)
         ad <- rbind(ad, r_snt)
         if(dom$vld != "") {
           # Hay dos candidatos de asentamiento, por eso no se usa
@@ -606,11 +606,11 @@ identifica <- function (dom, map = FALSE) {
 
         cj <- length(co$cve)
         while(cj > 0) {
-          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM)
+          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM, co[cj,]$nombre)
           ad <- rbind(ad, r_snt)
           if(alcance$tsnt && dom$tsnt != "") {
             dom.snt <- paste(dom$tsnt, dom$snt)
-            r_snt <- identifica_snt(dom.snt, co[cj,]$cve, r_loc[j,]$BM)
+            r_snt <- identifica_snt(dom.snt, co[cj,]$cve, r_loc[j,]$BM, co[cj,]$nombre)
             ad <- rbind(ad, r_snt)
           }
 
