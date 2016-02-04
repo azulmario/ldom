@@ -203,11 +203,13 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
 
   if(length(origen$nom_asen) > 0  && ! is.na(dom.snt) && dom.snt != "" && dom.snt != "." && dom.snt != "..") {
     origen$nom_asen <- limpieza(as.character(origen$nom_asen))
-  
+
     BM <- stringdistmatrix(origen$nom_asen, dom.snt, method="jw", p = 0.1)
     BM <- cbind(BM,origen)
-    r_snt <- BM[BM[,1] <= 0.05+min(BM[,1]),]
+    r_snt <- BM[BM[,1] <= 0.05 + min(BM[,1]) & BM[,1] <= 0.5,] # Limita los nombres no parecidos
 
+    if(length(r_snt$cve_asen) == 0)
+      return(NULL)
     # Obtiene las coordenadas y el rado del subconjunto
     d <- sapply(mapply(str_pad, as.character(r_snt$cve_asen), 4, pad = "0"), gcol.php)
     lat <- as.numeric(d[1,])
@@ -224,10 +226,9 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
     r_snt$niv <- 3
     r_snt$BM <- 1.0 - (1.0 - r_snt$BM) * (1.0 - r_loc.BM)
     r_snt$nombre <- paste(r_loc.nombre, r_snt$nombre, sep = ", ") # Nombre de asentamiento
-    r_snt
-  } else {
-    NULL
+    return(r_snt)
   }
+  return(NULL)
 }
 
 #-------------------------------------------------------------------
