@@ -4,7 +4,6 @@
 
 library(stringr)    # Para la conversión de tipos numéricos a cadenas
 library(stringdist) # Para las comparaciones de nombres topográficos
-library(jsonlite)   # Convertir cadenas de tipo json
 library(geosphere)  # Cálculo de distancias geográficas
 source("cadenas.R")   # Para la conversión de tipos numéricos a cadenas
 source("conectadb.R") # Para obtener la información de los servidores
@@ -258,15 +257,10 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM, r_loc.nombre, r_snt
         while(cv > 0) {
           lat1 <- origen[cv,]$lat ; long1 <- origen[cv,]$lon
           d0 <- distGeo(c(long1,lat1), c(long2,lat2))
-          r0 <- fromJSON(paste("[", gsub("^0", "", r_snt$cve[cs]),"]"))[3] # Utiliza el radio como influencia
-          if(d0 <= 4.0 * r0) {
-            if(is.na(origen[cv,]$d)) {
-              origen[cv,]$d <- d0
-              origen[cv,]$e <- strsplit(r_snt[cs,]$nombre, split=",")[[1]][3]
-            } else if(d0 < origen[cv,]$d){
-              origen[cv,]$d <- d0
-              origen[cv,]$e <- strsplit(r_snt[cs,]$nombre, split=",")[[1]][3]
-            }
+          r0 <- as.numeric(strsplit(r_snt$cve[cs], split=",")[[1]][3]) # Utiliza el radio como influencia
+          if((d0 <= 4.0 * r0) && (is.na(origen[cv,]$d) || (d0 < origen[cv,]$d))) {
+            origen[cv,]$d <- d0
+            origen[cv,]$e <- strsplit(r_snt[cs,]$nombre, split=",")[[1]][3]
           }
           cv <- cv - 1
         }
