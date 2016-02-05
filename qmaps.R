@@ -400,6 +400,17 @@ entriopia <- function (Tt) {
   sum((Tt$BM - 1)*log2(1 - Tt$BM))
 }
 
+# De la lista co2, regresa  aquellas no consideradas en ad
+norep <- function(co2, ad) {
+  co <- NULL
+  for(k in 1:length(co2$cve)) {
+    if(!(any(co2$cve[k] == ad$cve))){
+      co <- rbind(co, co2[k,])
+    }
+  }
+  return(co)
+}
+
 # Esquema de trabajo con listas tratadas como árboles de decisiones
 identifica <- function (dom, map = FALSE) {
   alcance <- NULL
@@ -480,7 +491,7 @@ identifica <- function (dom, map = FALSE) {
         # y ademaś el caso sin considerarlo.
         r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre, r_snt)
         if(!is.null(r_snt) & (is.null(r_vld) | min(r_vld$BM) != 0)) {
-          r_vld0 <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre)
+          r_vld0 <- norep(identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre), r_vld)
           r_vld <- rbind(r_vld, r_vld0)
         }
         ad <- rbind(ad, r_vld)
@@ -505,14 +516,7 @@ identifica <- function (dom, map = FALSE) {
 
       # Alternativas de localidad en misma zona conurbada
       # puede alterar el municipio
-      co2 <- conurbación(r_loc[j,]$cve)
-      co <- NULL
-      # Eliminar aquellas localidades ya consideradas anteriormente
-      for(k in 1:length(co2$cve)) {
-        if(!(any(co2$cve[k] == ad$cve))){
-          co <- rbind(co, co2[k,])
-        }
-      }
+      co <- norep(conurbación(r_loc[j,]$cve), ad)
 
       # Agregar a la lista tales localidades conurbadas adicionales
       ad <- rbind(ad, co)
@@ -521,10 +525,10 @@ identifica <- function (dom, map = FALSE) {
       while(cj > 0) {
         if(alcance$tsnt && dom$tsnt != "") {
           dom.snt <- paste(dom$tsnt, dom$snt)
-          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM, co[cj,]$nombre)
+          r_snt <- norep(identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM, co[cj,]$nombre), ad)
           ad <- rbind(ad, r_snt)
         } else {
-          r_snt <- identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM, co[cj,]$nombre)
+          r_snt <- norep(identifica_snt(dom$snt, co[cj,]$cve, r_loc[j,]$BM, co[cj,]$nombre), ad)
           ad <- rbind(ad, r_snt)
         }
 
@@ -597,14 +601,8 @@ identifica <- function (dom, map = FALSE) {
         #
         # Alternativas de localidad en misma zona conurbada
         # puede alterar el municipio
-        co2 <- conurbación(r_loc[j,]$cve)
-        co <- NULL
-        # Eliminar aquellas localidades ya consideradas anteriormente
-        for(k in 1:length(co2$cve)) {
-          if(!(any(co2$cve[k] == ad$cve))){
-            co <- rbind(co, co2[k,])
-          }
-        }
+        co <- norep(conurbación(r_loc[j,]$cve), ad)
+
         # Agregar a la lista tales localidades
         ad <- rbind(ad, co)
 
