@@ -1,5 +1,5 @@
 # Librería que implementa la búsqueda inteligente de
-# domicilios geográficos mediante arbol de desición.
+# domicilios geográficos mediante árbol de decisión.
 # Mario Hernández Morales / 2015 - 2016
 
 library(stringr)    # Para la conversión de tipos numéricos a cadenas
@@ -19,13 +19,13 @@ alcance0 <- NULL
 
 #-------------------------------------------------------------------
 # Mostrar el resultado en un mapa
-# Útil para probar y depurar el código
+# Útil para probar, depurar y mostrar el código
 hace_mapa <- function(r, r_zoom = NULL) {
   require(leaflet)
   mapa <<- leaflet(data = r) %>%
     addProviderTiles("Esri.WorldTopoMap") %>%
     addMarkers(~lon[], ~lat[], popup=~nombre)
-  if(!is.null(r_zoom) ) {
+  if(!is.null(r_zoom)) {
     mapa <<- setView(mapa, lng = r$lon[1], lat = r$lat[1], zoom = r_zoom)
   }
   print(mapa)
@@ -66,7 +66,7 @@ identifica_mun <- function(dom.mun) {
 
 # Manejo de cache para el listado de localidades de cada municipio
 Cachelist_loc <- vector(mode = "list", length = 46)
-# Regresa el listado de localidades, consuderanto el uso de dos nombres
+# Regresa el listado de localidades, considerando el uso de dos nombres
 list_loc <- function(cve_mun = "001") {
   if(is.null(Cachelist_loc[[as.numeric(cve_mun)]])) {
     origen1 <- loc.php(cve_mun)
@@ -209,7 +209,7 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
 
     if(length(r_snt$cve_asen) == 0)
       return(NULL)
-    # Obtiene las coordenadas y el rado del subconjunto
+    # Obtiene las coordenadas y el radio del subconjunto
     d <- sapply(mapply(str_pad, as.character(r_snt$cve_asen), 4, pad = "0"), gcol.php)
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
@@ -220,8 +220,7 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
     if(map.is.visible & length(lat) > 0) {
       hace_mapa(r_snt, 15)
     }
-    # Clave de asentamiento
-    r_snt$cve <- paste(r_loc.cve_loc, r_snt$cve, radio, sep = ",")
+    r_snt$cve <- paste(r_loc.cve_loc, r_snt$cve, radio, sep = ",") # Clave de asentamiento
     r_snt$niv <- 3
     r_snt$BM <- 1.0 - (1.0 - r_snt$BM) * (1.0 - r_loc.BM)
     r_snt$nombre <- paste(r_loc.nombre, r_snt$nombre, sep = ", ") # Nombre de asentamiento
@@ -233,9 +232,9 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
 #-------------------------------------------------------------------
 # Cuarto identifica la vialidad
 
-# Una colonia tiene en promedio un radio de 502 mt, con una desviación
+# Una colonia tiene en promedio un radio de 502 m, con una desviación
 # estándar de 343 metros.
-# La estrategia es buscar dentro de un radio de 3 sigmas desde el centroide
+# La estrategia es buscar dentro de un radio de 3 sigmas desde el centro
 # interno de la colonia. Hay que considerar que algunas calles por su longitud
 # se referencia puede salir del rango, por lo que se considera como un método
 # de refinamiento.
@@ -243,6 +242,7 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM, r_loc.nombre, r_snt
   origen <- cal2.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
   if(!is.null(r_snt)) # Si busca en asentamientos,
     origen <- origen[!(is.na(origen$lat)|is.na(origen$lon)),] # que todos tengan coordenadas
+  #@todo else aquellos que no tengan coordenadas las hereden de su localidad
 
   if(length(origen$nom_via) > 0 && ! is.na(dom.vld) && dom.vld != "" && dom.vld != "." && dom.vld != ".." && dom.vld != "...") {
     # Si se cuenta con información de las colonias, calcula las distancia
@@ -296,7 +296,7 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM, r_loc.nombre, r_snt
     }
     r_vld$niv <- 2
     r_vld$BM <- 1.0 - (1.0 - pmin(r_vld$B, r_vld$M)) * (1.0 - r_loc.BM)
-    r_vld$nombre <- paste(r_loc.nombre, r_vld$e, r_vld$nombre, sep = ", ") # Nombre de asentamiento
+    r_vld$nombre <- paste(r_loc.nombre, r_vld$e, r_vld$nombre, sep = ", ") # Nombre de vialidad
     r_vld$nombre <- gsub(", , ", ", ", r_vld$nombre)
     r_vld$cve <- mapply(str_pad, r_vld$cve, 12, pad = "0")
 
@@ -340,7 +340,7 @@ identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
 #-------------------------------------------------------------------
 # Sexto identifica el número exterior.
 # Cumple con el requisito de pintar varios puntos.
-# Se cambia la comparación string por numeric.
+# Se cambia la comparación textual por numérica.
 identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
   origen <- num.php (c = r_vld.cve_via)
   destino <- as.numeric(limpieza0(dom.num))
@@ -355,6 +355,7 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
     # @todo excluye a los números muy alejados
     # @todo que regrese el más cercano
     # @todo o pares cuando no sea exácto.
+    # @error aparecen cadenas vacias
     r_num <- cbind(r_vld.cve_via, r_num)
     r_num$num <- as.character(r_num$num)
     colnames(r_num)[1] <- "cve"
@@ -371,7 +372,7 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
 }
 
 #-------------------------------------------------------------------
-# Identifica el arbol de desición
+# Identifica el árbol de decisión
 
 # Método ID3 (Induction Decision Tree [Quinlan, 1979, 1986])
 # Técnica de aprendizaje automático
@@ -380,7 +381,7 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
 
 # Es un algoritmo voraz para la construcción automática de árboles
 # de decisión, que selecciona en cada paso el mejor atributo.
-# El mejor es el más discriminante (potencialmente más útil).
+# El mejor es el más discrimina (potencialmente más útil).
 
 # El proceso de construcción es iterativo:
 # 1- Se selecciona un subconjunto de ejemplos del conjunto
@@ -396,11 +397,11 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
 # Entropía (aleatoriedad del árbol)
 #   E = sum_{i=1}^n -p_i log_2(p_i)
 # El valor p_i es la probabilidad de éxito
-entriopia <- function (Tt) {
+entropia <- function (Tt) {
   sum((Tt$BM - 1)*log2(1 - Tt$BM))
 }
 
-# De la lista co2, regresa  aquellas no consideradas en ad
+# De la lista co2, regresa aquellas no consideradas en ad
 norep <- function(co2, ad) {
   co <- NULL
   for(k in 1:length(co2$cve)) {
@@ -488,7 +489,7 @@ identifica <- function (dom, map = FALSE) {
       }
       if(dom$vld != "") {
         # Si tenemos multiplicidad de asentamientos, incluir cada uno
-        # y ademaś el caso sin considerarlo.
+        # y además el caso sin considerarlo.
         r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre, r_snt)
         if(!is.null(r_snt) & (is.null(r_vld) | min(r_vld$BM) != 0)) {
           r_vld0 <- norep(identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre), r_vld)
@@ -514,11 +515,11 @@ identifica <- function (dom, map = FALSE) {
         }
       }
 
-      # Alternativas de localidad en misma zona conurbada
+      # Alternativas de localidad en misma conurbación
       # puede alterar el municipio
       co <- norep(conurbación(r_loc[j,]$cve), ad)
 
-      # Agregar a la lista tales localidades conurbadas adicionales
+      # Agregar a la lista tales localidades adicionales
       ad <- rbind(ad, co)
 
       cj <- length(co$cve)
@@ -561,11 +562,10 @@ identifica <- function (dom, map = FALSE) {
         cj <- cj - 1
       }
 
-      # Continúa ...
+      # Continúa...
       j <- j - 1
     }
-    # Intercambia localidad y colonia,
-    # solo sí son de nombre distinto.
+    # Intercambia localidad y colonia, solo si son de nombre distinto.
     destino <- limpieza(dom$snt)
     if (dom$snt != "" && destino != "" && destino != "." && destino != ".." &&
         destino != limpieza(dom$loc) ) {
@@ -599,8 +599,7 @@ identifica <- function (dom, map = FALSE) {
           }
         }
         #
-        # Alternativas de localidad en misma zona conurbada
-        # puede alterar el municipio
+        # Alternativas de localidad en misma conurbación; puede alterar el municipio
         co <- norep(conurbación(r_loc[j,]$cve), ad)
 
         # Agregar a la lista tales localidades
@@ -617,7 +616,7 @@ identifica <- function (dom, map = FALSE) {
           }
 
           if(dom$vld != "") {
-            # Identico al primer caso
+            # Idéntico al primer caso
             r_vld <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre, r_snt)
             if(!is.null(r_snt) & (is.null(r_vld) | min(r_vld$BM) != 0)) {
               r_vld0 <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre)
@@ -660,11 +659,11 @@ identifica <- function (dom, map = FALSE) {
 # en cada nivel tener el más probable
 
 # Ganancia de información:
-# Una rama con entriopía cero se convierte en hojas
+# Una rama con entropía cero se convierte en hojas
 # Si no es así, la rama debe seguir dividiéndose,
 # para poder clasificar mejor sus nodos
-# El algoritmo ID3 se ejecuta recursivamente en nodos
-# que no son hojas, hasta que se llegue a nodos - hoja
+# El algoritmo ID3 es recursivo en nodos,
+# que no son hojas, hasta que se llegue a las hojas
 # (resultado de la decisión)
 podar <- function (Ts, map = FALSE) {
   # Separa por niveles
@@ -740,7 +739,7 @@ podar <- function (Ts, map = FALSE) {
   # Pega la información de la mejor opción
   Us <- rbind(M0, M1, R02, R04, R05, M2, R24, R25, M3, M4, R45, M5)
   # Eliminar renglones sin coordenadas
-  # Nota: Por esto es importante que todos los razgos tengan asociada
+  # Nota: Por esto es importante que todos los rasgos tengan asociada
   # una coordenada geográfica, al menos en la base de datos; principalmente
   # en el caso de las vialidades.
   Us <- Us[which(!is.na(Us$lat)), ]
@@ -749,7 +748,7 @@ podar <- function (Ts, map = FALSE) {
   # Elimina en nivel cero, si no hay ninguna probabilidad de éxito
   Us <- Us[which(!(Us$niv == 0 & Us$BM == 1)), ]
 
-  # Eliminar renglones repetidos 
+  # Eliminar renglones repetidos
   Us <- unique(Us)
   
   if(map)
@@ -778,14 +777,14 @@ atomizar <- function (Ts, map = FALSE) {
     Ta <- Ta[1,]
   } else if(length(T2$BM) > 0 && any(T2$BM == 0)) { # Cuando hay una calle correcta
     if(length(T0$BM) > 0 && any(T0$BM < 0.12)) {
-      # Promedia las coordenadas si hay más de 1
+      # Promedia las coordenadas, si hay más de 1
       Ta <- T0[which(T0$BM < 0.12), ]
       Ta[1,]$lat <- mean(Ta$lat)
       Ta[1,]$lon <- mean(Ta$lon)
       Ta <- Ta[1,]
     } else {
-      # Proporciona la calle [order(T2$cve),]
-      # Último Ta[length(Ta),]
+      # Proporciona la calle
+      # [order(T2$cve),] último Ta[length(Ta),]
       Ta <- T2[which(T2$BM == 0), ][1,]
     }
   } else if(length(T3$BM) > 0 && any(T3$BM == 0)) {
@@ -833,7 +832,7 @@ lee <- function(path, sheet = 1) {
                   num = "num"  %in% colnames(matricula), int = "int" %in% colnames(matricula),
                   ref1 = "ref1" %in% colnames(matricula), ref2 = "ref2" %in% colnames(matricula),
                   CP = "CP"   %in% colnames(matricula))
-  # Completa con las columnas vacias donde no se tenga información
+  # Completa con las columnas vacías, donde no se tenga información
   if(!alcance0$mun)
     return
   if(!alcance0$loc)
@@ -845,7 +844,7 @@ lee <- function(path, sheet = 1) {
   if(!alcance0$num)
     matricula$num <- ""
 
-  # Crea el índice, si no tiene.
+  # Crea un índice, si no tiene
   if(!numera) {
     matricula$n <- 0
     for(n in 1:length(matricula[,1]))
@@ -867,7 +866,7 @@ lee <- function(path, sheet = 1) {
   if(alcance0$CP)
     vars <- c(vars, "CP")
 
-  # Construlle una base basado en las columnas con las que se cuentan
+  # Construye una base basado en las columnas con las que se cuentan
   # minimiza la carga de memoria durante el procesamiento
   matricula <- matricula[,vars]
 
@@ -906,7 +905,7 @@ main <- function (path, sheet = 1, file, paralelo = FALSE) {
       if(class(c) == "try-error") {
         c <- data.frame(niv=-2, BM=0, cve=0, nombre=0, lat=0, lon = 0)
       }
-      #Agrega el número de renglón
+      # Agrega el número de renglón
       c$n <-matricula[n,]$n
       c
   }, .parallel = paralelo, .progress = "time")
@@ -917,14 +916,14 @@ main <- function (path, sheet = 1, file, paralelo = FALSE) {
   write.xlsx(res[c(7, 1:6)], file)
 }
 
-#
+# Referencias:
+# Sean C. Anderson, plyr: Split-Apply-Combine for Mortals, 2013
 # http://seananderson.ca/2013/12/01/plyr.html
 
-#
-# ¿Cuántos arboles de desición distintos se pueden formar con n atributos booleanos?
+# La estrategia genérica no es práctica.
+# ¿Cuántos árboles de decisión distintos se pueden formar con n atributos booleanos?
 # 2^(2^n), con n = 8, tenemos 2 ^ (225) = 1.157920892×10⁷⁷
 # ¿Cuántos árboles de profundidad unitaria (capa de decisión)?
 # 4n
-#
-# P.D. La estrategia utilizada fue diseñar un árbol de desición en papel, y programar
+# Solución: La estrategia utilizada fue diseñar un árbol de decisión en papel, y programar
 # cada nodo por separado.
