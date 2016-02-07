@@ -341,21 +341,18 @@ identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
 # Sexto identifica el número exterior.
 # Cumple con el requisito de pintar varios puntos.
 # Se cambia la comparación textual por numérica.
-identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
+identifica_num <- function (dom.num, r_vld.cve_via, r_vld.nombre, r_vld.BM) {
   origen <- num.php (c = r_vld.cve_via)
-  destino <- as.numeric(limpieza0(dom.num))
-  if(!is.null(dom.num) && !is.na(dom.num) && !is.na(destino) && length(origen$num) > 0) {
-    origen.num <- as.numeric(limpieza0(as.character(origen$num)))
+  origen$num <- limpieza0(origen$num)
 
-    BM <- 2*pnorm(sqrt(2)*(abs(origen.num-destino)/50))-1
+  if(!is.null(dom.num) && !is.na(dom.num) && length(origen$num) > 0) {
+    BM <- 2*pnorm(sqrt(2)*(abs(origen$num-dom.num)/50))-1
     BM <- cbind(BM, origen)
-    BM <- BM[with(BM, order(BM)), ]
 
     r_num <- BM[BM[,1] <= min(BM[,1]),]
     # @todo excluye a los números muy alejados
     # @todo que regrese el más cercano
     # @todo o pares cuando no sea exácto.
-    # @error aparecen cadenas vacias
     r_num <- cbind(r_vld.cve_via, r_num)
     r_num$num <- as.character(r_num$num)
     colnames(r_num)[1] <- "cve"
@@ -365,6 +362,7 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.BM) {
     }
     r_num$niv <- 0
     r_num$BM <- 1.0 - (1.0 - r_num$BM) * (1.0 - r_vld.BM)
+    r_num$nombre <- paste(r_vld.nombre, r_num$nombre, sep = " #") # Dirección
     r_num[c(2,1,5,3,4,6)]
     } else {
     NULL
@@ -430,14 +428,13 @@ identifica <- function (dom, map = FALSE) {
   dom$loc <- limp_abrev(dom$loc, abrev_loc)
   dom$snt <- limp_abrev(dom$snt, abrev_snt)
   dom$vld <- limp_abrev(dom$vld, abrev_vld)
+  c_SN <- numero_SN(dom$num)
   dom$num <- limpieza0(dom$num)
-  if(dom$num != "")
-    dom$num <- as.character(as.numeric(dom$num))
 
   # Si no hay número exterior, verifica si no está incluido en la vialidad,
   # cuando se especifica sin número no aplica.
   # también separar los casos de vialidad con entrecalles.
-  if(dom$num == "" && !numero_SN(dom$num) && dom$vld != "") {
+  if(is.na(dom$num) && !c_SN && dom$vld != "") {
     q <- calle_partir(dom$vld)
     if(!is.na(q[1])) {
       dom$vld <- q[1]
@@ -491,7 +488,7 @@ identifica <- function (dom, map = FALSE) {
         # Si tenemos multiplicidad de asentamientos, incluir cada uno
         # y además el caso sin considerarlo.
         r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre, r_snt)
-        if(!is.null(r_snt) & (is.null(r_vld) | min(r_vld$BM) != 0)) {
+        if(!is.null(r_snt) & (is.null(r_vld) | min(r_vld$BM) != 0)) { # @error In min(r_vld$BM) : ningún argumento finito para min; retornando Inf
           r_vld0 <- norep(identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre), r_vld)
           r_vld <- rbind(r_vld, r_vld0)
         }
@@ -507,8 +504,8 @@ identifica <- function (dom, map = FALSE) {
             r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
             ad <- rbind(ad, r_ref2)
           }
-          if(alcance$num && dom$num != "" && limpieza0(dom$num) != "") {
-            r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+          if(alcance$num && !is.na(dom$num)) {
+            r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$nombre, r_vld[k,]$BM)
             ad <- rbind(ad, r_num)
           }
           k <- k - 1
@@ -552,8 +549,8 @@ identifica <- function (dom, map = FALSE) {
               r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
               ad <- rbind(ad, r_ref2)
             }
-            if(alcance$num && dom$num != "" && limpieza0(dom$num) != "") {
-              r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+            if(alcance$num && !is.na(dom$num)) {
+              r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$nombre, r_vld[k,]$BM)
               ad <- rbind(ad, r_num)
             }
             k <- k - 1
@@ -591,8 +588,8 @@ identifica <- function (dom, map = FALSE) {
               r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
               ad <- rbind(ad, r_ref2)
             }
-            if(alcance$num && dom$num != "" && limpieza0(dom$num) != "") {
-              r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+            if(alcance$num && !is.na(dom$num)) {
+              r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$nombre, r_vld[k,]$BM)
               ad <- rbind(ad, r_num)
             }
             k <- k - 1
@@ -634,8 +631,8 @@ identifica <- function (dom, map = FALSE) {
                 r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
                 ad <- rbind(ad, r_ref2)
               }
-              if(alcance$num && dom$num != "" && limpieza0(dom$num) != "") {
-                r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$BM)
+              if(alcance$num && !is.na(dom$num)) {
+                r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$nombre, r_vld[k,]$BM)
                 ad <- rbind(ad, r_num)
               }
               k <- k - 1
