@@ -488,7 +488,7 @@ identifica <- function (dom, map = FALSE) {
         # Si tenemos multiplicidad de asentamientos, incluir cada uno
         # y además el caso sin considerarlo.
         r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre, r_snt)
-        if(!is.null(r_snt) & (is.null(r_vld) | min(r_vld$BM) != 0)) { # @error In min(r_vld$BM) : ningún argumento finito para min; retornando Inf
+        if(!is.null(r_snt) && (is.null(r_vld) || min(r_vld$BM) != 0)) {
           r_vld0 <- norep(identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre), r_vld)
           r_vld <- rbind(r_vld, r_vld0)
         }
@@ -533,7 +533,7 @@ identifica <- function (dom, map = FALSE) {
         if(dom$vld != "") {
           # Similar al anterior, probando con localidades hermanas
           r_vld <- identifica_vld(dom$vld, co[cj,]$cve, co[cj,]$BM, co[cj,]$nombre, r_snt)
-          if(!is.null(r_snt) & (is.null(r_vld) | min(r_vld$BM) != 0)) {
+          if(!is.null(r_snt) && (is.null(r_vld) || min(r_vld$BM) != 0)) {
             r_vld0 <- identifica_vld(dom$vld, co[cj,]$cve, co[cj,]$BM, co[cj,]$nombre)
             r_vld <- rbind(r_vld, r_vld0)
           }
@@ -615,7 +615,7 @@ identifica <- function (dom, map = FALSE) {
           if(dom$vld != "") {
             # Idéntico al primer caso
             r_vld <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre, r_snt)
-            if(!is.null(r_snt) & (is.null(r_vld) | min(r_vld$BM) != 0)) {
+            if(!is.null(r_snt) && (is.null(r_vld) || min(r_vld$BM) != 0)) {
               r_vld0 <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre)
               r_vld <- rbind(r_vld, r_vld0)
             }
