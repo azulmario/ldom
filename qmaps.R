@@ -244,9 +244,11 @@ identifica_vld <- function(dom.vld, r_loc, r_snt = NULL) {
 
   if(length(origen$nom_via) > 0 && ! is.na(dom.vld) && dom.vld != "" && dom.vld != "." && dom.vld != ".." && dom.vld != "...") {
     origen$apx <- ""
-    if(!is.null(r_snt)) # Si busca en asentamientos,
+    if(!is.null(r_snt)) { # Si busca en asentamientos,
       origen <- origen[!(is.na(origen$lat)|is.na(origen$lon)),] # que todos tengan coordenadas
-    else { # Aquellos que no tengan coordenadas las hereden de su localidad
+      if(length(origen$nom_via) == 0)
+        return(NULL)
+    } else { # Aquellos que no tengan coordenadas las hereden de su localidad
       for(i in 1:length(origen$lat)) {
         if(is.na(origen[i,]$lat) ||  is.na(origen[i,]$lon)) {
           origen[i,]$lat <- r_loc$lat
