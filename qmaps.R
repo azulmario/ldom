@@ -238,13 +238,23 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
 # interno de la colonia. Hay que considerar que algunas calles por su longitud
 # se referencia puede salir del rango, por lo que se considera como un método
 # de refinamiento.
-identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM, r_loc.nombre, r_snt = NULL) {
-  origen <- cal2.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
-  if(!is.null(r_snt)) # Si busca en asentamientos,
-    origen <- origen[!(is.na(origen$lat)|is.na(origen$lon)),] # que todos tengan coordenadas
-  #@todo else aquellos que no tengan coordenadas las hereden de su localidad
+identifica_vld <- function(dom.vld, r_loc, r_snt = NULL) {
+  origen <- cal2.php(m = substr(r_loc$cve, 1, 3), l = substr(r_loc$cve, 4, 7))
 
   if(length(origen$nom_via) > 0 && ! is.na(dom.vld) && dom.vld != "" && dom.vld != "." && dom.vld != ".." && dom.vld != "...") {
+    origen$apx <- ""
+    if(!is.null(r_snt)) # Si busca en asentamientos,
+      origen <- origen[!(is.na(origen$lat)|is.na(origen$lon)),] # que todos tengan coordenadas
+    else { # Aquellos que no tengan coordenadas las hereden de su localidad
+      for(i in 1:length(origen$lat)) {
+        if(is.na(origen[i,]$lat) ||  is.na(origen[i,]$lon)) {
+          origen[i,]$lat <- r_loc$lat
+          origen[i,]$lon <- r_loc$lon
+          origen[i,]$apx <- " [aprox.]"
+        }
+      }
+    }
+
     # Si se cuenta con información de las colonias, calcula las distancia
     origen$e <- ""
     origen$d <- NA
@@ -268,7 +278,6 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM, r_loc.nombre, r_snt
       }
       origen <- origen[!is.na(origen$d),]
     }
-    origen <- origen[,1:6]
 
     # Hace limpieza de los candidatos de nombres
     origen$nom_via <- limpieza(as.character(origen$nom_via))
@@ -295,12 +304,13 @@ identifica_vld <- function(dom.vld, r_loc.cve_loc, r_loc.BM, r_loc.nombre, r_snt
       hace_mapa(r_vld, 17)
     }
     r_vld$niv <- 2
-    r_vld$BM <- 1.0 - (1.0 - pmin(r_vld$B, r_vld$M)) * (1.0 - r_loc.BM)
-    r_vld$nombre <- paste(r_loc.nombre, r_vld$e, r_vld$nombre, sep = ", ") # Nombre de vialidad
+    r_vld$BM <- 1.0 - (1.0 - pmin(r_vld$B, r_vld$M)) * (1.0 - r_loc$BM)
+    r_vld$nombre <- paste(r_loc$nombre, r_vld$e, r_vld$nombre, sep = ", ") # Nombre de vialidad
     r_vld$nombre <- gsub(", , ", ", ", r_vld$nombre)
+    r_vld$nombre <- paste(r_vld$nombre, r_vld$apx, sep = "")
     r_vld$cve <- mapply(str_pad, r_vld$cve, 12, pad = "0")
 
-    return(r_vld[,c(10,1,2,4,5,9)])
+    return(r_vld[,c("BM","cve","nombre","lat","lon","niv")])
   } else {
     return(NULL)
   }
@@ -363,9 +373,10 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.nombre, r_vld.BM) {
     r_num$niv <- 0
     r_num$BM <- 1.0 - (1.0 - r_num$BM) * (1.0 - r_vld.BM)
     r_num$nombre <- paste(r_vld.nombre, r_num$nombre, sep = " #") # Dirección
-    r_num[c(2,1,5,3,4,6)]
-    } else {
-    NULL
+
+    return(r_num[,c("BM","cve","nombre","lat","lon","niv")])
+  } else {
+    return(NULL)
   }
 }
 
@@ -487,9 +498,9 @@ identifica <- function (dom, map = FALSE) {
       if(dom$vld != "") {
         # Si tenemos multiplicidad de asentamientos, incluir cada uno
         # y además el caso sin considerarlo.
-        r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre, r_snt)
+        r_vld <- identifica_vld(dom$vld, r_loc[j,], r_snt)
         if(!is.null(r_snt) && (is.null(r_vld) || min(r_vld$BM) != 0)) {
-          r_vld0 <- norep(identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre), r_vld)
+          r_vld0 <- norep(identifica_vld(dom$vld, r_loc[j,]), r_vld)
           r_vld <- rbind(r_vld, r_vld0)
         }
         ad <- rbind(ad, r_vld)
@@ -532,9 +543,9 @@ identifica <- function (dom, map = FALSE) {
 
         if(dom$vld != "") {
           # Similar al anterior, probando con localidades hermanas
-          r_vld <- identifica_vld(dom$vld, co[cj,]$cve, co[cj,]$BM, co[cj,]$nombre, r_snt)
+          r_vld <- identifica_vld(dom$vld, co[cj,], r_snt)
           if(!is.null(r_snt) && (is.null(r_vld) || min(r_vld$BM) != 0)) {
-            r_vld0 <- identifica_vld(dom$vld, co[cj,]$cve, co[cj,]$BM, co[cj,]$nombre)
+            r_vld0 <- identifica_vld(dom$vld, co[cj,])
             r_vld <- rbind(r_vld, r_vld0)
           }
           ad <- rbind(ad, r_vld)
@@ -576,7 +587,7 @@ identifica <- function (dom, map = FALSE) {
         ad <- rbind(ad, r_snt)
         if(dom$vld != "") {
           # Hay dos candidatos de asentamiento, por eso no se usa
-          r_vld <- identifica_vld(dom$vld, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre)
+          r_vld <- identifica_vld(dom$vld, r_loc[j,])
           ad <- rbind(ad, r_vld)
           k <- length(r_vld$cve)
           while(k > 0) {
@@ -614,9 +625,9 @@ identifica <- function (dom, map = FALSE) {
 
           if(dom$vld != "") {
             # Idéntico al primer caso
-            r_vld <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre, r_snt)
+            r_vld <- identifica_vld(dom$vld, co[cj,], r_snt)
             if(!is.null(r_snt) && (is.null(r_vld) || min(r_vld$BM) != 0)) {
-              r_vld0 <- identifica_vld(dom$vld, co[cj,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre)
+              r_vld0 <- identifica_vld(dom$vld, co[cj,])
               r_vld <- rbind(r_vld, r_vld0)
             }
             ad <- rbind(ad, r_vld)
