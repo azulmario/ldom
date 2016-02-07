@@ -61,7 +61,7 @@ identifica_mun <- function(dom.mun) {
     hace_mapa(r_mun, 11)
   }
   r_mun$niv <- 5
-  r_mun
+  return(r_mun)
 }
 
 # Manejo de cache para el listado de localidades de cada municipio
@@ -106,9 +106,10 @@ identifica_loc <- function(dom.loc, r_mun.cve_mun, r_mun.BM, r_mun.nombre) {
     r_loc$BM <- 1.0 - (1.0 - r_loc$BM) * (1.0 - r_mun.BM) # Teorema de Bayes
     r_loc$nombre <- paste (r_mun.nombre, r_loc$nombre, sep = ", ") # Nombre de localidad
     r_loc$cve <- paste (r_mun.cve_mun, r_loc$cve, sep = "") # Clave de localidad
-    r_loc
+
+    return(r_loc)
   } else {
-    NULL
+    return(NULL)
   }
 }
 
@@ -189,9 +190,9 @@ identifica_locurb <- function(r_mun.cve_mun, r_mun.BM, r_mun.nombre) {
     r_loc$cve <- paste (m, l, sep = "") # Clave de localidad
     r_loc$nombre <- paste (r_mun.nombre, r_loc$nombre, sep = ", ") # Nombre de localidad
 
-    r_loc[c(6,1,2,3,4,5)]
+    return(r_loc[c("BM", "cve", "nombre", "lat", "lon", "niv")])
   } else {
-    NULL
+    return(NULL)
   }
 }
 
