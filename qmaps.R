@@ -362,10 +362,14 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.nombre, r_vld.BM) {
     BM <- 2*pnorm(sqrt(2)*(abs(origen$num-dom.num)/50))-1
     BM <- cbind(BM, origen)
 
-    r_num <- BM[BM[,1] <= min(BM[,1]),]
-    # @todo excluye a los números muy alejados
-    # @todo que regrese el más cercano
-    # @todo o pares cuando no sea exácto.
+    # Regrese el más cercano
+    # o pares cuando no sea exácto
+    # excluye a los números muy alejados
+    minBM <- min(BM[,1])
+    if(minBM > 0.5)
+      return(NULL)
+    r_num <- BM[BM[,1] <= minBM,]
+
     r_num <- cbind(r_vld.cve_via, r_num)
     r_num$num <- as.character(r_num$num)
     colnames(r_num)[1] <- "cve"
@@ -375,6 +379,7 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.nombre, r_vld.BM) {
     }
     r_num$niv <- 0
     r_num$BM <- 1.0 - (1.0 - r_num$BM) * (1.0 - r_vld.BM)
+    r_num$cve <- paste(r_num$cve, r_num$nombre, sep = "-") # Clave
     r_num$nombre <- paste(r_vld.nombre, r_num$nombre, sep = " #") # Dirección
 
     return(r_num[,c("BM","cve","nombre","lat","lon","niv")])
@@ -725,7 +730,7 @@ podar <- function (Ts, map = FALSE) {
   R02 <- NULL
   R04 <- NULL
   R05 <- NULL
-  while(i > 0) {
+  while(i > 0) { #@todo revisar con la homologación de claves
     R02 <- rbind(R02, T2[ which( T2$cve == C0[i] ), ] )
     R04 <- rbind(R04, T4[ which( substr(T4$cve, 2, 7) == substr(C0[i], 1, 6) ), ] )
     R05 <- rbind(R05, T5[ which( T5$cve == substr(C0[i], 1, 2) ), ] )
@@ -935,6 +940,6 @@ main <- function (path, sheet = 1, file, paralelo = FALSE) {
 # ¿Cuántos árboles de decisión distintos se pueden formar con n atributos booleanos?
 # 2^(2^n), con n = 8, tenemos 2 ^ (225) = 1.157920892×10⁷⁷
 # ¿Cuántos árboles de profundidad unitaria (capa de decisión)?
-# 4n
+# 4n, con n = 8, tenemos 4 * (8) = 32
 # Solución: La estrategia utilizada fue diseñar un árbol de decisión en papel, y programar
 # cada nodo por separado.
