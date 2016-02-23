@@ -357,6 +357,7 @@ identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
 identifica_num <- function (dom.num, r_vld.cve_via, r_vld.nombre, r_vld.BM) {
   origen <- num.php (c = r_vld.cve_via)
   origen$num <- limpieza0(origen$num)
+  origen <- origen[complete.cases(origen),]
 
   if(!is.null(dom.num) && !is.na(dom.num) && length(origen$num) > 0) {
     BM <- 2*pnorm(sqrt(2)*(abs(origen$num-dom.num)/50))-1
