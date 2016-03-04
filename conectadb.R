@@ -24,6 +24,13 @@ loc2.php <- function(m = "015") {
   d
 }
 
+loc3.php <- function(m = "015") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste("SELECT cve_loc, nombre FROM localidad3 WHERE cve_mun = '", m,"' ORDER BY nombre;", sep = "") )
+  odbcClose(dbconn)
+  d
+}
+
 #Asentamiento
 #Incorpora el tipo de asentamiento
 col.php <- function(m = "015", l = "0001") {

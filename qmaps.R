@@ -67,15 +67,23 @@ identifica_mun <- function(dom.mun) {
 # Manejo de cache para el listado de localidades de cada municipio
 Cachelist_loc <- vector(mode = "list", length = 46)
 # Regresa el listado de localidades, considerando el uso de dos nombres
+# Incluye casos A〔B〕 duplicando claves
 list_loc <- function(cve_mun = "001") {
   if(is.null(Cachelist_loc[[as.numeric(cve_mun)]])) {
     origen1 <- loc.php(cve_mun)
+    # Localidades con formato de paréntesis
     origen2 <- loc2.php(cve_mun)
-    origen3 <- cbind(origen2, as.data.frame(localidad_partir(as.vector(origen2$nombre))))
+    origen3 <- cbind(origen2, as.data.frame(localidad_partir_p(as.vector(origen2$nombre))))
     origen4 <- data.frame(origen3$cve_loc, origen3$V1)
     origen5 <- data.frame(origen3$cve_loc, origen3$V2)
     colnames(origen5) <- colnames(origen4) <- c("cve_loc", "nombre")
-    origen <- rbind(origen1, origen4, origen5)
+    # Localidades con formato de corchetes
+    origen2 <- loc3.php(cve_mun)
+    origen3 <- cbind(origen2, as.data.frame(localidad_partir_c(as.vector(origen2$nombre))))
+    origen6 <- data.frame(origen3$cve_loc, paste(origen3$V2, "", origen3$V1))
+    colnames(origen6) <- c("cve_loc", "nombre")
+    
+    origen <- rbind(origen1, origen4, origen5, origen6)
     origen$nombre <- limpieza(as.character(origen$nombre))
     origen$cve_loc <- mapply(str_pad, origen$cve_loc, 4, pad = "0") # str_pad(r_loc.cve_loc, 4, pad = "0"))
     d <- mapply(gloc.php, cve_mun, origen$cve_loc)
@@ -83,7 +91,7 @@ list_loc <- function(cve_mun = "001") {
     lon <- as.numeric(d[2,])
     origen <- data.frame(origen, lat, lon)
     colnames(origen)[1] <- "cve"
-    Cachelist_loc[[as.numeric(cve_mun)]] <<- origen
+    Cachelist_loc[[as.numeric(cve_mun)]] <<- unique(origen[complete.cases(origen),])
   }
   return(Cachelist_loc[[as.numeric(cve_mun)]])
 }
@@ -200,6 +208,7 @@ identifica_locurb <- function(r_mun.cve_mun, r_mun.BM, r_mun.nombre) {
 # Tercero identifica la colonia
 identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
   origen <- col.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
+  origen <- origen[complete.cases(origen),]
 
   if(length(origen$nom_asen) > 0  && ! is.na(dom.snt) && dom.snt != "" && dom.snt != "." && dom.snt != "..") {
     origen$nom_asen <- limpieza(as.character(origen$nom_asen))
@@ -239,7 +248,7 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
 # interno de la colonia. Hay que considerar que algunas calles por su longitud
 # se referencia puede salir del rango, por lo que se considera como un método
 # de refinamiento.
-identifica_vld <- function(dom.vld, r_loc, r_snt = NULL) {
+identifica_vld <- function(dom.vld, r_loc, r_snt = NULL, tipo = TRUE) {
   origen <- cal2.php(m = substr(r_loc$cve, 1, 3), l = substr(r_loc$cve, 4, 7))
 
   if(length(origen$nom_via) > 0 && ! is.na(dom.vld) && dom.vld != "" && dom.vld != "." && dom.vld != ".." && dom.vld != "...") {
@@ -307,7 +316,15 @@ identifica_vld <- function(dom.vld, r_loc, r_snt = NULL) {
       hace_mapa(r_vld, 17)
     }
     r_vld$niv <- 2
-    r_vld$BM <- 1.0 - (1.0 - pmin(r_vld$B, r_vld$M)) * (1.0 - r_loc$BM)
+    
+    if(tipo || is.null(r_snt)) { # @error
+      r_vld$BM <- 1.0 - (1.0 - pmin(r_vld$B, r_vld$M)) * (1.0 - r_loc$BM)
+    } else {
+      u_ <- r_snt$BM
+      u_ <- u_[ complete.cases(u_) ]
+      u_ <- max(u_)
+      r_vld$BM <- 1.0 - (1.0 - pmin(r_vld$B, r_vld$M)) * (1.0 - u_)
+    }
     r_vld$nombre <- paste(r_loc$nombre, r_vld$e, r_vld$nombre, sep = ", ") # Nombre de vialidad
     r_vld$nombre <- gsub(", , ", ", ", r_vld$nombre)
     r_vld$nombre <- paste(r_vld$nombre, r_vld$apx, sep = "")
@@ -664,6 +681,40 @@ identifica <- function (dom, map = FALSE) {
         j <- j - 1
       }
     }
+    # Si no hay colonia, pero la localidad debería ser la colonia
+    destino <- limpieza(dom$loc)
+    if(dom$snt == "" && destino != "" && destino != "." && destino != "..") {
+      r_loc <-identifica_locurb(r_mun[i,]$cve, 1.0 - (1.0 - r_mun[i,]$BM) * (1.0 - 0.05), r_mun[i,]$nombre)
+      ad <- rbind(ad, r_loc)
+      j <- length(r_loc$cve)
+      while(j > 0) {
+        r_snt <- identifica_snt(destino, r_loc[j,]$cve, r_loc[j,]$BM, r_loc[j,]$nombre)
+        ad <- rbind(ad, r_snt)
+        if(dom$vld != "") {
+          r_vld <- identifica_vld(dom$vld, r_loc[j,], r_snt, tipo = FALSE)
+          ad <- rbind(ad, r_vld)
+          
+          k <- length(r_vld$cve)
+          while(k > 0) {
+            if(alcance$ref1 && dom$ref1 != "" && limpieza(dom$ref1) != "") {
+              r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+              ad <- rbind(ad, r_ref1)
+            }
+            if(alcance$ref2 && dom$ref2 != "" && limpieza(dom$ref2) != "") {
+              r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+              ad <- rbind(ad, r_ref2)
+            }
+            if(alcance$num && !is.na(dom$num)) {
+              r_num <- identifica_num(dom$num, r_vld[k,]$cve, r_vld[k,]$nombre, r_vld[k,]$BM)
+              ad <- rbind(ad, r_num)
+            }
+            k <- k - 1
+          }
+        }
+        j <- j - 1
+      }
+    }
+
     i <- i - 1
   }
   if(map)
@@ -838,8 +889,11 @@ atomizar <- function (Ts, map = FALSE) {
 #-------------------------------------------------------------------
 # Lee el archivo de trabajo y realiza la normalización de los datos
 lee <- function(path, sheet = 1) {
+  #require(openxlsx)
+  #matricula <- read.xlsx(xlsxFile = path, sheet = sheet, skipEmptyRows = TRUE, colNames = TRUE)
   require(readxl)
   matricula <- read_excel(path, sheet)
+  
 
   # Normaliza la tabla para que contenga los campos requeridos
   numera <- "n" %in% colnames(matricula)
@@ -904,7 +958,7 @@ lee <- function(path, sheet = 1) {
 # guarda en un archivo separado.
 main <- function (path, sheet = 1, file, paralelo = FALSE) {
   # Oculta los mensajes, ocultar en depuración
-  options(show.error.messages = FALSE)
+  options(show.error.messages = TRUE)
   map.is.visible <<- FALSE
 
   # Procesamiento por lote
@@ -931,6 +985,7 @@ main <- function (path, sheet = 1, file, paralelo = FALSE) {
   # Intercambia el orden de las columnas
   require(openxlsx)
   write.xlsx(res[c(7, 1:6)], file)
+  warnings()
 }
 
 # Referencias:

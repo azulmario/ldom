@@ -647,7 +647,12 @@ quita_espacios <- function(tw) {
 }
 
 # Separar localidades con más acepciones en sus elementos
-localidad_partir <- function(tw) {
-  m <- regexec("([[:alnum:][:space:]]+)+([\\(]+)([[:alnum:][:space:][\\.]+)+([\\)]+)", tw)
+localidad_partir_p <- function(tw) {
+  m <- regexec("([[:alnum:][:space:][[:punct:]]+)+([\\(]+)([[:alnum:][:space:][[:punct:]]+)+([\\)]+)", tw)
+  do.call(rbind, lapply(regmatches(tw, m), `[`, c(2L,4L)))
+}
+
+localidad_partir_c <- function(tw) {
+  m <- regexec("([[:alnum:][:space:][[:punct:]]+)+([[]+)([[:alnum:][:space:][[:punct:]]+)+([]]+)", tw)
   do.call(rbind, lapply(regmatches(tw, m), `[`, c(2L,4L)))
 }
