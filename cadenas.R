@@ -25,6 +25,7 @@ limpieza0 <- function(tw = "") {
   tw <- gsub("ńù", ".", tw)
   tw <- gsub("[ |\t]{2,}", "", tw)  # Tabuladores
   tw <- gsub("[[:space:]]", "", tw) # Quita espacios
+  tw <- gsub("[\\.]+", ".", tw) # Quita puntos múltiples
   as.numeric(tw)
 }
 
