@@ -12,21 +12,21 @@ mun.php <- function() {
 #Localidad
 loc.php <- function(m = "015") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_loc, nombre FROM localidad WHERE cve_mun = '", m,"' ORDER BY nombre;", sep = "") )
+  d <- sqlQuery(dbconn, paste("SELECT cve_loc AS cve, nom_loc AS nombre, lat, lon FROM cat_localidad WHERE cve_mun = '", m,"';", sep = "") )
   odbcClose(dbconn)
   d
 }
 
 loc2.php <- function(m = "015") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_loc, nombre FROM localidad2 WHERE cve_mun = '", m,"' ORDER BY nombre;", sep = "") )
+  d <- sqlQuery(dbconn, paste("SELECT cve_loc AS cve, nom_loc AS nombre, lat, lon FROM cat_localidad WHERE dnom AND cve_mun = '", m,"';", sep = "") )
   odbcClose(dbconn)
   d
 }
 
 loc3.php <- function(m = "015") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_loc, nombre FROM localidad3 WHERE cve_mun = '", m,"' ORDER BY nombre;", sep = "") )
+  d <- sqlQuery(dbconn, paste("SELECT cve_loc AS cve, nom_loc AS nombre, lat, lon FROM cat_localidad WHERE cnom AND cve_mun = '", m,"';", sep = "") )
   odbcClose(dbconn)
   d
 }

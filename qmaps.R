@@ -74,23 +74,19 @@ list_loc <- function(cve_mun = "001") {
     # Localidades con formato de paréntesis
     origen2 <- loc2.php(cve_mun)
     origen3 <- cbind(origen2, as.data.frame(localidad_partir_p(as.vector(origen2$nombre))))
-    origen4 <- data.frame(origen3$cve_loc, origen3$V1)
-    origen5 <- data.frame(origen3$cve_loc, origen3$V2)
-    colnames(origen5) <- colnames(origen4) <- c("cve_loc", "nombre")
+    origen4 <- data.frame(origen3$cve, origen3$V1, origen3$lat, origen3$lon)
+    origen5 <- data.frame(origen3$cve, origen3$V2, origen3$lat, origen3$lon)
+    colnames(origen5) <- colnames(origen4) <- c("cve", "nombre", "lat", "lon")
     # Localidades con formato de corchetes
     origen2 <- loc3.php(cve_mun)
     origen3 <- cbind(origen2, as.data.frame(localidad_partir_c(as.vector(origen2$nombre))))
-    origen6 <- data.frame(origen3$cve_loc, paste(origen3$V2, "", origen3$V1))
-    colnames(origen6) <- c("cve_loc", "nombre")
-    
+    origen6 <- data.frame(origen3$cve, paste(origen3$V2, "", origen3$V1), origen3$lat, origen3$lon)
+    colnames(origen6) <- c("cve", "nombre", "lat", "lon")
+    # Pega la información en una única lista
     origen <- rbind(origen1, origen4, origen5, origen6)
     origen$nombre <- limpieza(as.character(origen$nombre))
-    origen$cve_loc <- mapply(str_pad, origen$cve_loc, 4, pad = "0") # str_pad(r_loc.cve_loc, 4, pad = "0"))
-    d <- mapply(gloc.php, cve_mun, origen$cve_loc)
-    lat <- as.numeric(d[1,])
-    lon <- as.numeric(d[2,])
-    origen <- data.frame(origen, lat, lon)
-    colnames(origen)[1] <- "cve"
+    origen$cve <- str_pad(origen$cve, 4, pad = "0")
+
     Cachelist_loc[[as.numeric(cve_mun)]] <<- unique(origen[complete.cases(origen),])
   }
   return(Cachelist_loc[[as.numeric(cve_mun)]])
@@ -181,15 +177,11 @@ identifica_locurb <- function(r_mun.cve_mun, r_mun.BM, r_mun.nombre) {
 
     r_loc <- NULL
     for(i in zurb)
-      r_loc <- rbind(r_loc, origen[origen$cve_loc == i,])
+      r_loc <- rbind(r_loc, origen[origen$cve == i,])
 
     m <- mapply(str_pad, r_mun.cve_mun, 3, pad = "0") 
-    l <- mapply(str_pad, r_loc$cve_loc, 4, pad = "0")
-    d <- mapply(gloc.php, m, l)
-    lat <- as.numeric(d[1,])
-    lon <- as.numeric(d[2,])
-    r_loc <- data.frame(r_loc, lat, lon)  
-    colnames(r_loc)[1] <- "cve"
+    l <- mapply(str_pad, r_loc$cve, 4, pad = "0")
+
     if(map.is.visible && length(lat) > 0) {
       hace_mapa(r_loc, 13)
     }
