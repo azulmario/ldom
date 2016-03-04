@@ -38,7 +38,7 @@ col.php <- function(m = "015", l = "0001") {
   d <- sqlQuery(dbconn, paste("SELECT cve_asen, nombre || ' ' || nom_asen as nom_asen, nom_asen as nom_asen0 FROM colonia as a, cat_tipo_asen as c WHERE ",
     "(cve_mun = '", m, "') AND (",
     "(cve_mun_u = '", m, "' AND cve_loc_u = '", l, "')",
-    " OR (cve_mun_r = '", m, "' AND cve_loc_r = '", l, "' AND distancia < 1000)) AND a.cve_tipo_asen = c.cve_tipo_asen ORDER BY nom_asen;", sep = ""))
+    " OR (cve_mun_r = '", m, "' AND cve_loc_r = '", l, "' AND distancia < 1000)) AND a.cve_tipo_asen = c.cve_tipo_asen;", sep = ""))
   odbcClose(dbconn)
   d0 <- d[c(1, 3)]
   colnames(d0)[2] <- "nom_asen"
@@ -97,6 +97,7 @@ ecal.php <- function(c = "015000100024") {
 
 # Proporciona la localidad (gloc.php)
 # Proporciona el municipio (anterior con d_loc = "0001")
+# Útil solo para las coordenadas del municipio
 gloc.php <- function(m = "015", l = "0001") {
   dbconn <- odbcConnect("local")
   d <- sqlQuery(dbconn, paste("SELECT lat, lon FROM cat_localidad WHERE cve_mun = '", m, "' AND cve_loc = '", l, "';", sep = ""))
@@ -105,7 +106,7 @@ gloc.php <- function(m = "015", l = "0001") {
 }
 
 # Proporciona las coordenadas del centroide interno de la colonia
-# incluye el radio maximo al contorno.
+# incluye el radio máximo al contorno.
 gcol.php <- function(c = "0780") {
   dbconn <- odbcConnect("local")
   d <- sqlQuery(dbconn, paste(

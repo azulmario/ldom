@@ -199,10 +199,14 @@ identifica_locurb <- function(r_mun.cve_mun, r_mun.BM, r_mun.nombre) {
 #-------------------------------------------------------------------
 # Tercero identifica la colonia
 identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
+  if(is.na(dom.snt) || dom.snt == "" || dom.snt == "." || dom.snt == "..") {
+    return(NULL)
+  }
+  
   origen <- col.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
   origen <- origen[complete.cases(origen),]
 
-  if(length(origen$nom_asen) > 0  && ! is.na(dom.snt) && dom.snt != "" && dom.snt != "." && dom.snt != "..") {
+  if(length(origen$nom_asen) > 0) {
     origen$nom_asen <- limpieza(as.character(origen$nom_asen))
 
     BM <- stringdistmatrix(origen$nom_asen, dom.snt, method="jw", p = 0.1)
@@ -212,7 +216,7 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
     if(length(r_snt$cve_asen) == 0)
       return(NULL)
     # Obtiene las coordenadas y el radio del subconjunto
-    d <- sapply(mapply(str_pad, as.character(r_snt$cve_asen), 4, pad = "0"), gcol.php)
+    d <- sapply(str_pad(as.character(r_snt$cve_asen), 4, pad = "0"), gcol.php)
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
     radio <- round(as.numeric(d[3,]), digits = 2)
@@ -241,9 +245,12 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
 # se referencia puede salir del rango, por lo que se considera como un método
 # de refinamiento.
 identifica_vld <- function(dom.vld, r_loc, r_snt = NULL, tipo = TRUE) {
+  if(is.na(dom.vld) || dom.vld == "" || dom.vld == "." || dom.vld == ".." || dom.vld == "...") {
+    return(NULL)
+  }
   origen <- cal2.php(m = substr(r_loc$cve, 1, 3), l = substr(r_loc$cve, 4, 7))
 
-  if(length(origen$nom_via) > 0 && ! is.na(dom.vld) && dom.vld != "" && dom.vld != "." && dom.vld != ".." && dom.vld != "...") {
+  if(length(origen$nom_via) > 0) {
     origen$apx <- ""
     if(!is.null(r_snt)) { # Si busca en asentamientos,
       origen <- origen[!(is.na(origen$lat)|is.na(origen$lon)),] # que todos tengan coordenadas
@@ -341,7 +348,10 @@ identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
     BM <- cbind(BM,origen)
     BM <- BM[with(BM, order(BM)), ]
 
-    r_ref <- BM[BM[,1] <= 0.05+min(BM[,1]),]
+    r_ref <- BM[BM[,1] <= 0.05+min(BM[,1]) & BM[,1] <= 0.5,] # Limita los nombres no parecidos
+
+    if(length(r_ref$cve) == 0)
+      return(NULL)
     d <- sapply(r_ref$cve, gecal.php, e = r_vld.cve_via) # Obtiene las coordenadas de la esquina
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
