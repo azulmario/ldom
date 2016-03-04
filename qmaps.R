@@ -477,7 +477,7 @@ identifica <- function (dom, map = FALSE) {
       dom$vld <- q[1]
     }
     if(!is.na(q[2])) {
-      dom$num <- q[2] # Se crea el número
+      dom$num <- limpieza0(q[2]) # Se crea el número
       alcance$num <- TRUE # Se declara en alcance
     }
     if(!is.na(q[4])) {
