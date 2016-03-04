@@ -96,9 +96,13 @@ list_loc <- function(cve_mun = "001") {
 # Segundo identifica la localidad
 # Nota: Considerar permuta con colonia, principalmente en zona rural
 identifica_loc <- function(dom.loc, r_mun.cve_mun, r_mun.BM, r_mun.nombre) {
+  if(is.na(dom.loc) || dom.loc == '') {
+    return(NULL)
+  }
+
   origen <- list_loc(r_mun.cve_mun)
-  
-  if(length(origen$nombre) > 0  && ! is.na(dom.loc) && dom.loc != '') {
+
+  if(length(origen$nombre) > 0) {
     BM <- stringdistmatrix(origen$nombre, dom.loc, method="jw", p = 0.1)
     BM <- cbind(BM,origen)
     r_loc <- BM[BM[,1] <= 0.05 + min(BM[,1]),]
@@ -202,7 +206,7 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
   if(is.na(dom.snt) || dom.snt == "" || dom.snt == "." || dom.snt == "..") {
     return(NULL)
   }
-  
+
   origen <- col.php(m = substr(r_loc.cve_loc, 1, 3), l = substr(r_loc.cve_loc, 4, 7))
   origen <- origen[complete.cases(origen),]
 
@@ -338,10 +342,14 @@ identifica_vld <- function(dom.vld, r_loc, r_snt = NULL, tipo = TRUE) {
 #-------------------------------------------------------------------
 # Quinto identifica la entrecalle
 identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
+  destino <- limpieza(dom.ref)
+  if(is.na(dom.ref) || destino == "" || destino == "." || destino == ".." || destino == "...") {
+    return(NULL)
+  }
+
   origen <- ecal.php(c = r_vld.cve_via)
 
-  destino = limpieza(dom.ref)
-  if(length(origen$nom_via) > 0 && ! is.na(dom.ref) && destino != "" && destino != "." && destino != ".." && destino != "...") {
+  if(length(origen$nom_via) > 0) {
     origen$nom_via <- limpieza(as.character(origen$nom_via))
 
     BM <- stringdistmatrix(origen$nom_via, destino, method="jw", p = 0.1)
@@ -374,11 +382,15 @@ identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
 # Cumple con el requisito de pintar varios puntos.
 # Se cambia la comparación textual por numérica.
 identifica_num <- function (dom.num, r_vld.cve_via, r_vld.nombre, r_vld.BM) {
+  if(is.null(dom.num) || is.na(dom.num)) {
+    return(NULL)
+  }
+
   origen <- num.php (c = r_vld.cve_via)
   origen$num <- limpieza0(origen$num)
   origen <- origen[complete.cases(origen),]
 
-  if(!is.null(dom.num) && !is.na(dom.num) && length(origen$num) > 0) {
+  if(length(origen$num) > 0) {
     BM <- 2*pnorm(sqrt(2)*(abs(origen$num-dom.num)/50))-1
     BM <- cbind(BM, origen)
 
