@@ -226,7 +226,7 @@ conurbación <- function(r_loc.cve_loc = "0150001") {
 
 # NOTAS
 # Rodbc se instala con
-#> sudo apt-get instal r-cran-rodbc odbc-postgresql
+#> sudo apt-get install r-cran-rodbc odbc-postgresql
 
 # Configurar conexión con:
 #> more /etc/odbc.ini
