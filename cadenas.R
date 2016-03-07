@@ -1,3 +1,5 @@
+library(stringr)
+
 # Limpieza de textos
 limpieza <- function(tw = "") {
   tw <- toupper(tw)
@@ -347,7 +349,6 @@ Cachelist_SN <- c(
   'VILLAS CENTENARIO 718',
   'VISTA ALEGRE 2000')
 SN_parts <- function(x) {
-  require(stringr)
   t <- x
   for(s in Cachelist_SN)
     t <- str_replace_all(t, s, str_replace_all(s, " ", "âẍò"))
@@ -439,7 +440,6 @@ Cachelist_SS <- c(
   'ZARATE Y SANCHEZ',
   'ZARATE Y VILLEGAS')
 SS_parts <- function(x) {
- require(stringr)
  t <- x
  for(s in Cachelist_SS)
    t <- str_replace_all(t, s, str_replace_all(s, " ", "âẍò"))
