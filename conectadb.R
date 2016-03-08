@@ -1,4 +1,4 @@
-library("RODBC") # Para realizar las conexiones con PostgreSQL
+library(RODBC) # Para realizar las conexiones con PostgreSQL
 
 #Municipio 
 mun.php <- function() {
