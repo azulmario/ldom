@@ -516,6 +516,7 @@ abrev_mun <- function(tw) {
   if(tw == "SILAO") tw <- "SILAO DE LA VICTORIA"
   if(tw == "ALLENDE") tw <- "SAN MIGUEL DE ALLENDE"
   if(tw == "SAN MIGUEL") tw <- "SAN MIGUEL DE ALLENDE"
+  if(tw == "DOLORES HIDALGO") tw <- "DOLORES HIDALGO C I N"
   tw
 }
 
@@ -544,6 +545,7 @@ abrev_loc <- function(tw) {
 
   if(tw == "LEON") tw <- "LEON DE LOS ALDAMA"
   if(tw == "SILAO") tw <- "SILAO DE LA VICTORIA"
+  if(tw == "DOLORES HIDALGO") tw <- "DOLORES HIDALGO CUNA DE LA INDEPENDENCIA NACIONAL"
 
   tw
 }
@@ -576,6 +578,10 @@ abrev_snt <- function(tw) {
   tw <- gsub("[[:space:]]+", " ", tw) # Espacios dobles generados
   tw <- gsub("^ ", "", tw)  # Quita espacio al principio
   tw <- gsub(" $", "", tw)  # Quita espacio al final
+
+  if(tw == "CONOCIDO") tw <- ""
+  if(tw == "XXX") tw <- ""
+  
   tw
 }
 
@@ -620,6 +626,7 @@ abrev_vld <- function(tw) {
   tw <- gsub(" $", "", tw)  # Quita espacio al final
 
   if(tw == "CONOCIDO") tw <- ""
+  if(tw == "XXX") tw <- ""
 
   tw
 }
