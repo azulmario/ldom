@@ -57,6 +57,8 @@ identifica_mun <- function(dom.mun) {
   BM <- cbind(BM,origen) # Pega los datos
   r_mun <- BM[BM[,1] <= 0.05 + min(BM[,1]),] # Obtiene el mínimo
 
+  r_mun$BM <- as.vector(stringdistmatrix(r_mun$nombre, dom.mun, method="cosine"))
+  
   if(map.is.visible) {
     hace_mapa(r_mun, 11)
   }
@@ -74,14 +76,20 @@ list_loc <- function(cve_mun = "001") {
     # Localidades con formato de paréntesis
     origen2 <- loc2.php(cve_mun)
     origen3 <- cbind(origen2, as.data.frame(localidad_partir_p(as.vector(origen2$nombre))))
-    origen4 <- data.frame(origen3$cve, origen3$V1, origen3$lat, origen3$lon)
-    origen5 <- data.frame(origen3$cve, origen3$V2, origen3$lat, origen3$lon)
-    colnames(origen5) <- colnames(origen4) <- c("cve", "nombre", "lat", "lon")
+    origen4 <- origen5 <- NULL
+    if (length(origen3$cve) > 0) {
+      origen4 <- data.frame(origen3$cve, origen3$V1, origen3$lat, origen3$lon)
+      origen5 <- data.frame(origen3$cve, origen3$V2, origen3$lat, origen3$lon)
+      colnames(origen5) <- colnames(origen4) <- c("cve", "nombre", "lat", "lon")
+    }
     # Localidades con formato de corchetes
     origen2 <- loc3.php(cve_mun)
     origen3 <- cbind(origen2, as.data.frame(localidad_partir_c(as.vector(origen2$nombre))))
-    origen6 <- data.frame(origen3$cve, paste(origen3$V2, "", origen3$V1), origen3$lat, origen3$lon)
-    colnames(origen6) <- c("cve", "nombre", "lat", "lon")
+    origen6 <- NULL
+    if(length(origen3$cve) > 0) {
+      origen6 <- data.frame(origen3$cve, paste(origen3$V2, "", origen3$V1), origen3$lat, origen3$lon)
+      colnames(origen6) <- c("cve", "nombre", "lat", "lon")
+    }
     # Pega la información en una única lista
     origen <- rbind(origen1, origen4, origen5, origen6)
     origen$nombre <- limpieza(as.character(origen$nombre))
@@ -106,6 +114,11 @@ identifica_loc <- function(dom.loc, r_mun.cve_mun, r_mun.BM, r_mun.nombre) {
     BM <- stringdistmatrix(origen$nombre, dom.loc, method="jw", p = 0.1)
     BM <- cbind(BM,origen)
     r_loc <- BM[BM[,1] <= 0.05 + min(BM[,1]),]
+
+    # Hace una corrección cuando el nombre buscado es
+    # un subconjunto del nombre de catálogo
+    # ejemplo: buscando "COPALILLO" encuentra "EL COPALILLO"
+    r_loc$BM <- as.vector(stringdistmatrix(r_loc$nombre, dom.loc, method="cosine"))
 
     if(map.is.visible & length(r_loc$lat) > 0) {
       hace_mapa(r_loc, 13)
@@ -219,6 +232,9 @@ identifica_snt <- function(dom.snt, r_loc.cve_loc, r_loc.BM, r_loc.nombre) {
 
     if(length(r_snt$cve_asen) == 0)
       return(NULL)
+    
+    r_snt$BM <- as.vector(stringdistmatrix(r_snt$nom_asen, dom.snt, method="cosine"))
+
     # Obtiene las coordenadas y el radio del subconjunto
     d <- sapply(str_pad(as.character(r_snt$cve_asen), 4, pad = "0"), gcol.php)
     lat <- as.numeric(d[1,])
@@ -298,20 +314,15 @@ identifica_vld <- function(dom.vld, r_loc, r_snt = NULL, tipo = TRUE) {
     origen$nom_via <- limpieza(as.character(origen$nom_via))
     origen$nom_via0 <- limpieza(as.character(origen$nom_via0))
 
-    #@error No funciona con  
-    #dom.vld <- "CAMPIÑA", cuando es "DE LA CAMPIÑA"
-
     # Calcula las distancias con cada uno de los candidatos
     origen$B <- stringdistmatrix(origen$nom_via, dom.vld, method="jw", p = 0.1)
     origen$M <- stringdistmatrix(origen$nom_via0, dom.vld, method="jw", p = 0.1)
     r_vld <- origen[origen$B <= 0.05+min(origen$B) | origen$M <= 0.05+min(origen$M),]
 
-    # Revisar si este caso es necesario o genera error, cuando se utiliza 0.00 en vez de 0.05
-    #if (!length(r_vld$lat)) {
-    #  origen$B <- stringdistmatrix(rsna(origen$nom_via), rsna(dom.vld), method="soundex")
-    #  origen$M <- stringdistmatrix(rsna(origen$nom_via0), rsna(dom.vld), method="soundex")
-    #  r_vld <- origen[origen$B == 0 | origen$M == 0,]
-    #}
+    #@error No funciona con  
+    #dom.vld <- "CAMPIÑA", cuando es "DE LA CAMPIÑA"
+    r_vld$B <- as.vector(stringdistmatrix(r_vld$nom_via, dom.vld, method="cosine"))
+    r_vld$M <- as.vector(stringdistmatrix(r_vld$nom_via0, dom.vld, method="cosine"))
 
     colnames(r_vld)[1] <- "cve"
     colnames(r_vld)[2] <- "nombre"
@@ -360,6 +371,9 @@ identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
 
     if(length(r_ref$cve) == 0)
       return(NULL)
+
+    r_ref$BM <- as.vector(stringdistmatrix(r_ref$nom_via, destino, method="cosine"))
+    
     d <- sapply(r_ref$cve, gecal.php, e = r_vld.cve_via) # Obtiene las coordenadas de la esquina
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
@@ -387,10 +401,10 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.nombre, r_vld.BM) {
   }
 
   origen <- num.php (c = r_vld.cve_via)
-  origen$num <- limpieza0(origen$num)
   origen <- origen[complete.cases(origen),]
 
   if(length(origen$num) > 0) {
+    origen$num <- limpieza0(origen$num)
     BM <- 2*pnorm(sqrt(2)*(abs(origen$num-dom.num)/50))-1
     BM <- cbind(BM, origen)
 
@@ -480,7 +494,11 @@ identifica <- function (dom, map = FALSE) {
   dom$snt <- limp_abrev(dom$snt, abrev_snt)
   dom$vld <- limp_abrev(dom$vld, abrev_vld)
   c_SN <- numero_SN(dom$num)
-  dom$num <- limpieza0(dom$num)
+  if(c_SN){
+    dom$num <- NA
+  } else {
+    dom$num <- limpieza0(dom$num)
+  }
 
   # Si no hay número exterior, verifica si no está incluido en la vialidad,
   # cuando se especifica sin número no aplica.
@@ -507,6 +525,7 @@ identifica <- function (dom, map = FALSE) {
 
   r_mun <- identifica_mun(dom$mun)
   ad <- r_mun
+  #r_mun$BM <- 0 # Solo prueba con un municipio
 
   if(dom$loc == "" && dom$snt == "" && dom$vld == "")
     return(ad[c(6, 1, 2, 3, 4, 5)])
@@ -521,7 +540,7 @@ identifica <- function (dom, map = FALSE) {
     ad <- rbind(ad, r_loc)
 
     if(dom$snt == "" && dom$vld == "") {
-      i <- i - 1
+      i <- i - 1 # @error: evita que se permuten o hagan las comprobaciones de conurbación de localidad
       next
     }
 
@@ -561,6 +580,12 @@ identifica <- function (dom, map = FALSE) {
           }
           k <- k - 1
         }
+      }
+      # Verifica si ya encontró un mínimo al nivel cero
+      if(length(ad[ad$niv == 0,]$BM) > 0 && min(ad[ad$niv == 0,]$BM) == 0) {
+        if(map)
+          hace_mapa(ad)
+        return(ad[c(6, 1, 2, 3, 4, 5)])
       }
 
       # Alternativas de localidad en misma conurbación
@@ -971,8 +996,10 @@ lee <- function(path, sheet = 1) {
 # Ejecuta el procedimiento sobre el archivo de direcciones y lo
 # guarda en un archivo separado.
 main <- function (path, sheet = 1, file, paralelo = FALSE) {
-  # Oculta los mensajes, ocultar en depuración
+  # Muestra los mensajes de alertas, principalmente para depuración
+  assign("last.warning", NULL, envir = baseenv())
   options(show.error.messages = TRUE)
+
   map.is.visible <<- FALSE
 
   # Procesamiento por lote
@@ -994,7 +1021,7 @@ main <- function (path, sheet = 1, file, paralelo = FALSE) {
       c$n <-matricula[n,]$n
       c
   }, .parallel = paralelo, .progress = "time")
-  options(show.error.messages = TRUE)
+
   # Guarda en el sentido en el que fue generado (orden lógico)
   # Intercambia el orden de las columnas
   require(openxlsx)
