@@ -352,13 +352,13 @@ identifica_vld <- function(dom.vld, r_loc, r_snt = NULL, tipo = TRUE) {
 
 #-------------------------------------------------------------------
 # Quinto identifica la entrecalle
-identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
+identifica_ref <- function(dom.ref, r_vld) {
   destino <- limpieza(dom.ref)
   if(is.na(dom.ref) || destino == "" || destino == "." || destino == ".." || destino == "...") {
     return(NULL)
   }
 
-  origen <- ecal.php(c = r_vld.cve_via)
+  origen <- ecal.php(c = r_vld$cve)
 
   if(length(origen$nom_via) > 0) {
     origen$nom_via <- limpieza(as.character(origen$nom_via))
@@ -374,17 +374,18 @@ identifica_ref <- function(dom.ref, r_vld.cve_via, r_vld.BM) {
 
     r_ref$BM <- as.vector(stringdistmatrix(r_ref$nom_via, destino, method="cosine"))
     
-    d <- sapply(r_ref$cve, gecal.php, e = r_vld.cve_via) # Obtiene las coordenadas de la esquina
+    d <- sapply(r_ref$cve, gecal.php, e = r_vld$cve) # Obtiene las coordenadas de la esquina
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
     r_ref <- data.frame(r_ref, lat, lon)
-    colnames(r_ref)[2] <- "cve"
     colnames(r_ref)[3] <- "nombre"
     if(map.is.visible & length(lat) > 0) {
       hace_mapa(r_ref, 17)
     }
     r_ref$niv <- 1
-    r_ref$BM <- 1.0 - (1.0 - r_ref$BM) * (1.0 - r_vld.BM)
+    r_ref$BM <- 1.0 - (1.0 - r_ref$BM) * (1.0 - r_vld$BM)
+    r_ref$nombre <- paste(r_vld$nombre, r_ref$nombre, sep = " Y ")
+    r_ref$cve <- paste(r_vld$cve, r_ref$cve, sep = "x")
     return(r_ref)
   } else {
     return(NULL)
@@ -567,11 +568,11 @@ identifica <- function (dom, map = FALSE) {
         k <- length(r_vld$cve)
         while(k > 0) {
           if(alcance$ref1 && dom$ref1 != "" && limpieza(dom$ref1) != "") {
-            r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+            r_ref1 <- identifica_ref(dom$ref1, r_vld[k,])
             ad <- rbind(ad, r_ref1)
           }
           if(alcance$ref2 && dom$ref2 != "" && limpieza(dom$ref2) != "") {
-            r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+            r_ref2 <- identifica_ref(dom$ref2, r_vld[k,])
             ad <- rbind(ad, r_ref2)
           }
           if(alcance$num && !is.na(dom$num)) {
@@ -618,11 +619,11 @@ identifica <- function (dom, map = FALSE) {
           k <- length(r_vld$cve)
           while(k > 0) {
             if(alcance$ref1 && dom$ref1 != "" && limpieza(dom$ref1) != "") {
-              r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+              r_ref1 <- identifica_ref(dom$ref1, r_vld[k,])
               ad <- rbind(ad, r_ref1)
             }
             if(alcance$ref2 && dom$ref2 != "" && limpieza(dom$ref2) != "") {
-              r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+              r_ref2 <- identifica_ref(dom$ref2, r_vld[k,])
               ad <- rbind(ad, r_ref2)
             }
             if(alcance$num && !is.na(dom$num)) {
@@ -657,11 +658,11 @@ identifica <- function (dom, map = FALSE) {
           k <- length(r_vld$cve)
           while(k > 0) {
             if(alcance$ref1 && dom$ref1 != "" && limpieza(dom$ref1) != "") {
-              r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+              r_ref1 <- identifica_ref(dom$ref1, r_vld[k,])
               ad <- rbind(ad, r_ref1)
             }
             if(alcance$ref2 && dom$ref2 != "" && limpieza(dom$ref2) != "") {
-              r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+              r_ref2 <- identifica_ref(dom$ref2, r_vld[k,])
               ad <- rbind(ad, r_ref2)
             }
             if(alcance$num && !is.na(dom$num)) {
@@ -700,11 +701,11 @@ identifica <- function (dom, map = FALSE) {
             k <- length(r_vld$cve)
             while(k > 0) {
               if(alcance$ref1 && dom$ref1 != "" && limpieza(dom$ref1) != "") {
-                r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+                r_ref1 <- identifica_ref(dom$ref1, r_vld[k,])
                 ad <- rbind(ad, r_ref1)
               }
               if(alcance$ref2 && dom$ref2 != "" && limpieza(dom$ref2) != "") {
-                r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+                r_ref2 <- identifica_ref(dom$ref2, r_vld[k,])
                 ad <- rbind(ad, r_ref2)
               }
               if(alcance$num && !is.na(dom$num)) {
@@ -736,11 +737,11 @@ identifica <- function (dom, map = FALSE) {
           k <- length(r_vld$cve)
           while(k > 0) {
             if(alcance$ref1 && dom$ref1 != "" && limpieza(dom$ref1) != "") {
-              r_ref1 <- identifica_ref(dom$ref1, r_vld[k,]$cve, r_vld[k,]$BM)
+              r_ref1 <- identifica_ref(dom$ref1, r_vld[k,])
               ad <- rbind(ad, r_ref1)
             }
             if(alcance$ref2 && dom$ref2 != "" && limpieza(dom$ref2) != "") {
-              r_ref2 <- identifica_ref(dom$ref2, r_vld[k,]$cve, r_vld[k,]$BM)
+              r_ref2 <- identifica_ref(dom$ref2, r_vld[k,])
               ad <- rbind(ad, r_ref2)
             }
             if(alcance$num && !is.na(dom$num)) {
