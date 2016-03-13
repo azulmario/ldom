@@ -402,10 +402,10 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.nombre, r_vld.BM) {
   }
 
   origen <- num.php (c = r_vld.cve_via)
+  origen$num <- limpieza0(origen$num)
   origen <- origen[complete.cases(origen),]
 
   if(length(origen$num) > 0) {
-    origen$num <- limpieza0(origen$num)
     BM <- 2*pnorm(sqrt(2)*(abs(origen$num-dom.num)/50))-1
     BM <- cbind(BM, origen)
 
@@ -874,16 +874,16 @@ atomizar <- function (Ts, map = FALSE) {
   T4 <- Ts[which(Ts$niv == 4), ]
   T5 <- Ts[which(Ts$niv == 5), ]
   Ta <- NULL
-  if(length(T0$BM) > 0 && any(T0$BM == 0)) {
+  if(length(T0$BM) > 0 && any(T0$BM <= 1e-07)) {
     # Número exterior exacto
-    Ta <- T0[which(T0$BM == 0), ][1, ]
-  } else if(length(T1$BM) > 0 && any(T1$BM == 0)) {
+    Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)), ][1, ]
+  } else if(length(T1$BM) > 0 && any(T1$BM <= 1e-07)) {
     # Promedia las coordenadas si proporciona las dos entrecalles correctamente
-    Ta <- T1[which(T1$BM == 0), ]
+    Ta <- T1[which(T1$BM <= 1e-07), ]
     Ta[1,]$lat <- mean(Ta$lat)
     Ta[1,]$lon <- mean(Ta$lon)
     Ta <- Ta[1,]
-  } else if(length(T2$BM) > 0 && any(T2$BM == 0)) { # Cuando hay una calle correcta
+  } else if(length(T2$BM) > 0 && any(T2$BM <= 1e-07)) { # Cuando hay una calle correcta
     if(length(T0$BM) > 0 && any(T0$BM < 0.12)) {
       # Promedia las coordenadas, si hay más de 1
       Ta <- T0[which(T0$BM < 0.12), ]
@@ -893,14 +893,14 @@ atomizar <- function (Ts, map = FALSE) {
     } else {
       # Proporciona la calle
       # [order(T2$cve),] último Ta[length(Ta),]
-      Ta <- T2[which(T2$BM == 0), ][1,]
+      Ta <- T2[which(T2$BM == min(T2$BM, na.rm = TRUE)), ][1,]
     }
-  } else if(length(T3$BM) > 0 && any(T3$BM == 0)) {
+  } else if(length(T3$BM) > 0 && any(T3$BM <= 1e-07)) {
     if(length(T2$BM) > 0 && any(T2$BM < 0.1)){
       Ta <- T2[which(T2$BM < 0.1), ][1, ]
     } else {
       # Se queda con la colonia
-      Ta <- T3[which(T3$BM == 0), ][1, ]
+      Ta <- T3[which(T3$BM <= 1e-07), ][1, ]
     }
   } else if(length(T4$BM) > 0 && any(T4$BM < 0.15)) {
     if(length(T2$BM) > 0 && any(T2$BM < 0.1)) {
