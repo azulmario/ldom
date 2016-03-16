@@ -1026,7 +1026,8 @@ main <- function (path, sheet = 1, file, paralelo = FALSE) {
   # Guarda en el sentido en el que fue generado (orden lógico)
   # Intercambia el orden de las columnas
   require(openxlsx)
-  write.xlsx(res[c(7, 1:6)], file)
+  write.xlsx(merge(matricula, res[c(7, 1:6)]), file)
+  
   warnings()
 }
 
