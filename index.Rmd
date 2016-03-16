@@ -42,7 +42,7 @@ r_snt <- identifica_snt(dom$snt, r_loc$cve, r_loc$BM, r_loc$nombre)
 mapa
 ```
 
-Se localiza la vialidad o calle. Hay que considerar todas las posibilidades, por lo que obtenemos una nube de puntos probables:
+Posteriormente se localiza la vialidad o calle. Hay que considerar todas las posibilidades, por lo que obtenemos una nube de puntos probables:
 
 ```{r}
 r_vld <- identifica_vld(dom$vld, r_loc)
@@ -55,7 +55,7 @@ Y finalmente el número exterior.
 r_num <- identifica_num(dom$num, r_vld[1,]$cve, r_vld[1,]$nombre, r_vld[1,]$BM)
 mapa
 ```
-No se utiliza el Código postal, pero es posible utilizar las entrecalles o esquinas.
+No se utiliza el Código postal, pero es posible utilizar las entre calles o esquinas.
 
 ## Construcción del árbol de desición
 

@@ -7,7 +7,7 @@ shinyUI(fluidPage(
       p("Ejemplo demostrativo de la potencialidad de localización automatizada de domicilios geográficos. Para su desarrollo se implementa una técnica de inteligencia artificial denominada árbol de decisión."),
       tags$hr(),
       h4("Notas"),
-      p("Los archivos de entrada deben tener un formato específico, primero se deben identificar los campos necesarios, según la norma técnica de domicilios geográficos de Inegi e identificar con etiquetas preestablecida."),
+      p("Los archivos de entrada deben tener un formato específico, primero se deben identificar los campos necesarios, según la norma técnica de domicilios geográficos de Inegi, e identificarlos con etiquetas preestablecida."),
       p('Puedes utilizar el archivo muestra, tomarlo como referencia, aquí puedes descargar la plantilla',
         a(href = '../docs/demo.xlsx', 'demo.xlsx', target='_blank'), 'para utilizarla para sus datos.'),
       p("La velocidad depende de las características de la máquina virtual, principalmente en el número de procesadores asignados."),
