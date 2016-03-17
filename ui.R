@@ -23,10 +23,6 @@ shinyUI(fluidPage(
     mainPanel(
       h3("Primer paso"),
       p("El primer paso es cargar el archivo de direcciones."),
-      numericInput("sheet", 
-                   label = p("Hoja a leer, un número entero (la posición de la hoja). Por defecto es la primera hoja."), 
-                   value = 1, min = 1, step = 1),
-      tags$hr(),
       fileInput('file1', 'Elija el archivo a subir',
                 accept = c(
                   'application/vnd.ms-excel',
@@ -35,6 +31,8 @@ shinyUI(fluidPage(
                   '.xlsx'
                 )
       ),
+      uiOutput("slider"),
+      p("Vista previa de los datos:"),
       tableOutput('matricula'),
       tags$hr(),
       h3("Segundo paso"),

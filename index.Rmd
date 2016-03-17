@@ -3,6 +3,7 @@ title: 'Reporte: Sobre la factibilidad de localización automatizada de domicili
 author: "Mario Hernández Morales"
 date: "Septiembre de 2015"
 output: html_document
+runtime: shiny
 ---
 
 Para su desarrollo se implementa una técnica de inteligencia artificial denominada árbol de decisión.
@@ -16,8 +17,11 @@ source("qmaps.R")
 path = "dom.xlsx"
 matricula <- lee(path, 3)
 n <- sample(1:length(matricula$mun), 1)
-dom <-matricula[n,]
-t(dom)
+dom <- matricula[n,]
+
+renderTable({
+  t(dom)
+})
 ```
 
 El método consiste en utilizar la misma técnica de los usuarios al capturar una dirección, primero se captura el municipio, con ello tenemos la primera ubicación, más burda, pero es el inicio para localizar el domicilio:
@@ -62,19 +66,27 @@ No se utiliza el Código postal, pero es posible utilizar las entre calles o esq
 Crea el árbol de decisión:
 ```{r}
 Tt <- identifica(dom, TRUE)
-entropia(Tt)
+renderTable({
+  as.table(entropia(Tt), dnn="Entropía")
+})
 mapa
 ```
 Podar el árbol:
 ```{r}
 Tt <- podar(Tt, TRUE)
-entropia(Tt)
+renderTable({
+  as.table(entropia(Tt), dnn="Entropía")
+})
 mapa
 ```
 Atomiza el árbol podado:
 ```{r}
 Tt <- atomizar(Tt, TRUE)
-entropia(Tt)
+renderTable({
+  as.table(entropia(Tt), dnn="Entropía")
+})
 mapa
-t(Tt)
+renderTable({
+  t(Tt)
+})
 ```
