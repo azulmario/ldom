@@ -23,7 +23,7 @@ shinyUI(fluidPage(
     mainPanel(
       h3("Primer paso"),
       p("El primer paso es cargar el archivo de direcciones."),
-      fileInput('file1', 'Elija el archivo a subir',
+      fileInput('file1', 'Elija el archivo a subir:',
                 accept = c(
                   'application/vnd.ms-excel',
                   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -32,15 +32,14 @@ shinyUI(fluidPage(
                 )
       ),
       uiOutput("slider"),
-      p("Vista previa de los datos:"),
       tableOutput('matricula'),
       tags$hr(),
       h3("Segundo paso"),
+      p("Cuando esté listo, presione el siguiente botón para ejecutar el procesamiento de todas las direcciones del lote definido en el paso anterior:"),
       actionButton('goButton','Procesamiento por lote'),
+      textOutput("nText"),
       tags$hr(),
       h3("Tercer paso"),
-      verbatimTextOutput("nText"),
-      tags$hr(),
       downloadButton('downloadData', 'Download')
     )
   )
