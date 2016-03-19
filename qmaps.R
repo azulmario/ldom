@@ -591,7 +591,7 @@ identifica <- function (dom, map = FALSE) {
 
       # Alternativas de localidad en misma conurbación
       # puede alterar el municipio
-      co <- norep(conurbación(r_loc[j,]$cve), ad)
+      co <- norep(conurbacion(r_loc[j,]$cve), ad)
 
       # Agregar a la lista tales localidades adicionales
       ad <- rbind(ad, co)
@@ -674,7 +674,7 @@ identifica <- function (dom, map = FALSE) {
         }
         #
         # Alternativas de localidad en misma conurbación; puede alterar el municipio
-        co <- norep(conurbación(r_loc[j,]$cve), ad)
+        co <- norep(conurbacion(r_loc[j,]$cve), ad)
 
         # Agregar a la lista tales localidades
         ad <- rbind(ad, co)
@@ -934,15 +934,14 @@ lee <- function(path, sheet = 1) {
   require(readxl)
   matricula <- read_excel(path, sheet)
   
-
   # Normaliza la tabla para que contenga los campos requeridos
   numera <- "n" %in% colnames(matricula)
   alcance0 <<- list(mun = "mun"  %in% colnames(matricula), loc = "loc" %in% colnames(matricula),
-                  tsnt = "tsnt" %in% colnames(matricula), snt = "snt" %in% colnames(matricula), 
-                  tvld = "tvld" %in% colnames(matricula), vld = "vld" %in% colnames(matricula),
-                  num = "num"  %in% colnames(matricula), int = "int" %in% colnames(matricula),
-                  ref1 = "ref1" %in% colnames(matricula), ref2 = "ref2" %in% colnames(matricula),
-                  CP = "CP"   %in% colnames(matricula))
+                    tsnt = "tsnt" %in% colnames(matricula), snt = "snt" %in% colnames(matricula), 
+                    tvld = "tvld" %in% colnames(matricula), vld = "vld" %in% colnames(matricula),
+                    num = "num"  %in% colnames(matricula), int = "int" %in% colnames(matricula),
+                    ref1 = "ref1" %in% colnames(matricula), ref2 = "ref2" %in% colnames(matricula),
+                    CP = "CP"   %in% colnames(matricula))
   # Completa con las columnas vacías, donde no se tenga información
   if(!alcance0$mun)
     return
@@ -954,14 +953,14 @@ lee <- function(path, sheet = 1) {
     matricula$vld <- ""
   if(!alcance0$num)
     matricula$num <- ""
-
+  
   # Crea un índice, si no tiene
   if(!numera) {
     matricula$n <- 0
     for(n in 1:length(matricula[,1]))
       matricula[n,]$n <- n
   }
-
+  
   # Listado de variables disponibles
   vars <- c("n","mun","loc", "snt", "vld", "num")
   if(alcance0$tsnt)
@@ -976,20 +975,20 @@ lee <- function(path, sheet = 1) {
     vars <- c(vars, "ref2")
   if(alcance0$CP)
     vars <- c(vars, "CP")
-
+  
   # Construye una base basado en las columnas con las que se cuentan
   # minimiza la carga de memoria durante el procesamiento
   matricula <- matricula[,vars]
-
+  
   # Quita los renglones vacíos, basado en el campo municipio
   matricula <- matricula[which(!is.na(matricula$mun)),]
   matricula$mun <- limpieza(matricula$mun)
   matricula <- matricula[which(matricula$mun != ""), ]
-
+  
   # Remplaza los resultados NA por cadena vacía
   # Simplifica el código al no tener que hacer doble verificación
   matricula[is.na(matricula)] <- ""
-
+  
   return(matricula) 
 }
 
@@ -1030,6 +1029,47 @@ main <- function (path, sheet = 1, file, paralelo = FALSE) {
   
   warnings()
 }
+
+#-------------------------------------------------------------------
+# Ejecuta el procedimiento sobre el archivo de direcciones y lo
+# guarda en un archivo separado. Incluye segumiento del proceso.
+# En este caso siempre se procesa en paralelo.
+main2 <- function (path, sheet, file, id) {
+  options(show.error.messages = FALSE)
+  map.is.visible <<- FALSE
+  
+  # Procesamiento por lote
+  matricula <- lee(path, sheet)
+  
+  # Procesamiento en paralelo y secuencial
+  require(plyr)
+  require(doParallel)
+  registerDoParallel(cores = (detectCores() - 1))
+
+  res <- ldply(1:length(matricula$mun), function(n) {
+    # Procesa la dirección y obtiene la coordenada geográfica probable
+    c <- try(atomizar(podar(identifica(matricula[n,]))), silent = TRUE)
+    if(class(c) == "try-error") {
+      c <- data.frame(niv=-2, BM=0, cve=0, nombre=0, lat=0, lon = 0)
+    }
+    # Reporta el avance a la base de datos
+    avence.ldom.php(id, n)
+    # Agrega el número de renglón
+    c$n <-matricula[n,]$n
+    c
+  }, .parallel = TRUE)
+
+  # Guarda en el sentido en el que fue generado (orden lógico)
+  # Intercambia el orden de las columnas
+  require(openxlsx)
+  write.xlsx(merge(matricula, res[c(7, 1:6)]), file)
+
+  # Reporta que se concluyó el froceso
+  fin.ldom.php(id)
+
+  return(0)
+}
+
 
 # Referencias:
 # Sean C. Anderson, plyr: Split-Apply-Combine for Mortals, 2013

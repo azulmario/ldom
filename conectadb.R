@@ -197,7 +197,7 @@ gecal.php <- function(c = 15006700440, e = 15006700441) {
 #204	110350001	Juventino Rosas
 #205	110420001	Valle de Santiago
 #206	110460001	Yuriria
-conurbación <- function(r_loc.cve_loc = "0150001") {
+conurbacion <- function(r_loc.cve_loc = "0150001") {
   m = substr(r_loc.cve_loc, 1, 3)
   l = substr(r_loc.cve_loc, 4, 7)
 
@@ -224,6 +224,37 @@ conurbación <- function(r_loc.cve_loc = "0150001") {
   }
 }
 
+# Rutinas para la administración de la  bitácora de procesamiento por lotes
+ldom.php <- function(file_in, sheet, file_out, size) {
+  dbconn <- odbcConnect("local")
+  id <- sqlQuery(dbconn, paste("INSERT INTO ldom (id, file_in, sheet, file_out, size) VALUES (DEFAULT,'",file_in, "',", sheet,",'", file_out,"',",size,") RETURNING id;",sep=""))
+  odbcClose(dbconn)
+  id
+}
+
+avence.ldom.php <- function(id, n) {
+  dbconn <- odbcConnect("local")
+  sqlQuery(dbconn, paste("UPDATE ldom SET biased = ",n," WHERE id = ",id,";",sep=""))
+  odbcClose(dbconn)
+  return(NULL)
+}
+
+fin.ldom.php <- function(id) {
+  dbconn <- odbcConnect("local")
+  sqlQuery(dbconn, paste("UPDATE ldom SET time_end = now() WHERE id = ",id,";",sep=""))
+  odbcClose(dbconn)
+  return(NULL)
+}
+
+# Da de alta en identificador del proceso
+inicio.ldom.php <- function(id) {
+  require('Hmisc')
+  pid <- first.word(gsub("^ ", "", system("ps -o pid,cmd -C R |grep source", intern = TRUE)[2]))
+  dbconn <- odbcConnect("local")
+  sqlQuery(dbconn, paste("UPDATE ldom SET pid = ",pid," WHERE id = ",id,";",sep=""))
+  odbcClose(dbconn)
+  return(NULL)
+}
 # NOTAS
 # Rodbc se instala con
 #> sudo apt-get install r-cran-rodbc odbc-postgresql
