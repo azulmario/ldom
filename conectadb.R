@@ -227,23 +227,30 @@ conurbacion <- function(r_loc.cve_loc = "0150001") {
 # Rutinas para la administración de la  bitácora de procesamiento por lotes
 ldom.php <- function(file_in, sheet, file_out, size) {
   dbconn <- odbcConnect("local")
-  id <- sqlQuery(dbconn, paste("INSERT INTO ldom (id, file_in, sheet, file_out, size) VALUES (DEFAULT,'",file_in, "',", sheet,",'", file_out,"',",size,") RETURNING id;",sep=""))
+  id <- sqlQuery(dbconn, paste("INSERT INTO ldom (id, file_in, sheet, file_out, time_start, size) VALUES (DEFAULT,'",file_in, "',", sheet,",'", file_out,"', now() AT TIME ZONE 'America/Mexico_City',",size,") RETURNING id;",sep=""))
   odbcClose(dbconn)
   id
 }
 
-avence.ldom.php <- function(id, n) {
+avance.ldom.php <- function(id) {
   dbconn <- odbcConnect("local")
-  sqlQuery(dbconn, paste("UPDATE ldom SET biased = ",n," WHERE id = ",id,";",sep=""))
+  sqlQuery(dbconn, paste("UPDATE ldom SET biased = biased + 1 WHERE id = ",id,";",sep=""))
   odbcClose(dbconn)
   return(NULL)
 }
 
 fin.ldom.php <- function(id) {
   dbconn <- odbcConnect("local")
-  sqlQuery(dbconn, paste("UPDATE ldom SET time_end = now() WHERE id = ",id,";",sep=""))
+  sqlQuery(dbconn, paste("UPDATE ldom SET time_end = now() AT TIME ZONE 'America/Mexico_City' WHERE id = ",id,";",sep=""))
   odbcClose(dbconn)
   return(NULL)
+}
+
+lee.ldom.php <- function() {
+  dbconn <- odbcConnect("local")
+  id <- sqlQuery(dbconn, "SELECT * FROM ldom ORDER BY id DESC")
+  odbcClose(dbconn)
+  id
 }
 
 # Da de alta en identificador del proceso

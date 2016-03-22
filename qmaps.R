@@ -1037,14 +1037,14 @@ main <- function (path, sheet = 1, file, paralelo = FALSE) {
 main2 <- function (path, sheet, file, id) {
   options(show.error.messages = FALSE)
   map.is.visible <<- FALSE
-  
+
   # Procesamiento por lote
   matricula <- lee(path, sheet)
-  
+
   # Procesamiento en paralelo y secuencial
   require(plyr)
   require(doParallel)
-  registerDoParallel(cores = (detectCores() - 1))
+  registerDoParallel(cores = (detectCores() - 1)) # Mínimo 2 procesadores
 
   res <- ldply(1:length(matricula$mun), function(n) {
     # Procesa la dirección y obtiene la coordenada geográfica probable
@@ -1053,7 +1053,7 @@ main2 <- function (path, sheet, file, id) {
       c <- data.frame(niv=-2, BM=0, cve=0, nombre=0, lat=0, lon = 0)
     }
     # Reporta el avance a la base de datos
-    avence.ldom.php(id, n)
+    avance.ldom.php(id)
     # Agrega el número de renglón
     c$n <-matricula[n,]$n
     c
@@ -1069,7 +1069,6 @@ main2 <- function (path, sheet, file, id) {
 
   return(0)
 }
-
 
 # Referencias:
 # Sean C. Anderson, plyr: Split-Apply-Combine for Mortals, 2013
