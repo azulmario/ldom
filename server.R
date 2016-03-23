@@ -236,11 +236,13 @@ shinyServer(function(input, output, session) {
     s <- input$ldom_rows_selected
     if (length(s)) {
       r <- lee.ldom.php()[s[1],]
-      if(!is.na(r$time_end)) {
-        system(paste("rm '", r$file_in, "'", sep = ""))
+      if(is.na(r$time_end)) {
+        system(paste("kill ", r$pid, "", sep = ""))
+      } else {
         system(paste("rm '", r$file_out, "'", sep = ""))
-        remove.ldom.php(r$id)
       }
+      system(paste("rm '", r$file_in, "'", sep = ""))
+      remove.ldom.php(r$id)
     }
   })
 

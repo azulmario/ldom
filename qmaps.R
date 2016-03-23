@@ -1062,13 +1062,13 @@ main2 <- function (path, sheet, file, id) {
     c
   }, .parallel = TRUE)
 
+  # Reporta que se concluyó el froceso
+  fin.ldom.php(id)
+
   # Guarda en el sentido en el que fue generado (orden lógico)
   # Intercambia el orden de las columnas
   require(openxlsx)
   write.xlsx(merge(matricula, res[c(7, 1:6)]), file)
-
-  # Reporta que se concluyó el froceso
-  fin.ldom.php(id)
 
   return(0)
 }
