@@ -262,6 +262,15 @@ inicio.ldom.php <- function(id) {
   odbcClose(dbconn)
   return(NULL)
 }
+
+# Elimina un registro
+remove.ldom.php <- function(id) {
+  dbconn <- odbcConnect("local")
+  sqlQuery(dbconn, paste("DELETE FROM ldom WHERE id = ",id,";",sep=""))
+  odbcClose(dbconn)
+  return(NULL)
+}
+
 # NOTAS
 # Rodbc se instala con
 #> sudo apt-get install r-cran-rodbc odbc-postgresql
