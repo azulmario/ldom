@@ -1,6 +1,36 @@
 library(shiny)
+library(DT)
 
 shinyUI(fluidPage(
+  tags$head(
+    tags$style(HTML(
+"
+.shiny-progress .bar {
+  background-color: #FF0000;
+  .opacity = 0.8;
+}
+.shiny-progress .progress {
+  height:18px;
+}
+.shiny-progress .progress-text {
+	border-color:rgb(235, 204, 209);
+	border:1px solid transparent;
+	border-radius:4px;
+  font-size:14p;
+  font-weight:700;
+	color:rgb(169, 68, 66);
+	background-color:rgb(242, 222, 222);
+  line-height:20px;
+  box-sizing:border-box;
+  padding:15px;
+  .opacity = 0.5;
+  -ms-display: flex;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+"))
+  ),
   titlePanel("Localización automatizada de domicilios geográficos"),
   sidebarLayout(
     sidebarPanel(
@@ -17,8 +47,7 @@ shinyUI(fluidPage(
         a(href = '../dom', '/dom', target='_blank'), '.'),
       p('Reporte de características del programa automatizado:',
         a(href = '../reporte', '/reporte', target='_blank'), '.'),
-      p('Carpeta de trabajo:',
-        a(href = '../docs/out', '/out', target='_blank'), '.')
+      textOutput("currentTime")
     ),
     mainPanel(
       h3("Primer paso"),
@@ -40,7 +69,14 @@ shinyUI(fluidPage(
       textOutput("nText"),
       tags$hr(),
       h3("Tercer paso"),
-      downloadButton('downloadData', 'Download')
+      fluidRow(
+        column(width = 12, DT::dataTableOutput('ldom')),
+        column(width = 2, downloadButton('downloadData1', 'CSV')),
+        column(width = 2, downloadButton('downloadData2', 'XLS')),
+        column(width = 2, downloadButton('downloadData3', 'SHP')),
+        column(width = 2, offset = 4, actionButton('deleteData', 'DEL', icon =icon('erase', lib = "glyphicon")))
+      ),
+      tags$hr()
     )
   )
 ))
