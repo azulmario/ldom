@@ -232,6 +232,14 @@ ldom.php <- function(file_in, sheet, file_out, size) {
   id
 }
 
+# Almacena el pid del lote
+pid.ldom.php <- function(id, pid) {
+  dbconn <- odbcConnect("local")
+  sqlQuery(dbconn, paste("UPDATE ldom SET pid = ", pid, " WHERE id = ",id,";",sep=""))
+  odbcClose(dbconn)
+  return(NULL)
+}
+
 avance.ldom.php <- function(id) {
   dbconn <- odbcConnect("local")
   sqlQuery(dbconn, paste("UPDATE ldom SET biased = biased + 1 WHERE id = ",id,";",sep=""))

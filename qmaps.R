@@ -1038,6 +1038,9 @@ main2 <- function (path, sheet, file, id) {
   options(show.error.messages = FALSE)
   map.is.visible <<- FALSE
 
+  # Almacena el Process ID
+  pid.ldom.php(id, Sys.getpid())
+  
   # Procesamiento por lote
   matricula <- lee(path, sheet)
 
