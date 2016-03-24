@@ -37,16 +37,16 @@ shinyUI(fluidPage(
       p("Ejemplo demostrativo de la potencialidad de localización automatizada de domicilios geográficos. Para su desarrollo se implementa una técnica de inteligencia artificial denominada árbol de decisión."),
       tags$hr(),
       h4("Notas"),
-      p("Los archivos de entrada deben tener un formato específico, primero se deben identificar los campos necesarios, según la norma técnica de domicilios geográficos de Inegi, e identificarlos con etiquetas preestablecida."),
-      p('Puedes utilizar el archivo muestra, tomarlo como referencia, aquí puedes descargar la plantilla',
-        a(href = '../docs/demo.xlsx', 'demo.xlsx', target='_blank'), 'para utilizarla para sus datos.'),
+      p("Los archivos de entrada deben tener un formato específico, primero se deben identificar los campos necesarios, según la ",a(href = '../docs/dof_ntdg.pdf', 'norma técnica de domicilios geográficos', target='_blank')," de Inegi, e identificarlos con etiquetas preestablecida. También puede consultar su ", a(href = '../docs/manual_ntdg2012.pdf', 'Manual.', target='_blank')),
+      p('Recomendamos utilizar el archivo muestra, tomarlo como referencia, aquí puedes descargar la plantilla',
+        a(href = '../docs/demo.xlsx', 'demo.xlsx', target='_blank'), 'para utilizarla para sus datos. Además vea el ', a(href = '../docs/demo.xlsx', 'Diccionario de Datos', target='_blank'), ' para conocer todas las posibilidades disponibles.'),
       p("La velocidad depende de las características de la máquina virtual, principalmente en el número de procesadores asignados."),
       tags$hr(),
       h4("Referencias"),
       p('Programa de captura de domicilios con adecuaciones para visualizarlo en un mapa:',
-        a(href = '../dom', '/dom', target='_blank'), '.'),
+        a(href = '../dom', '/dom.', target='_blank')),
       p('Reporte de características del programa automatizado:',
-        a(href = '../reporte', '/reporte', target='_blank'), '.'),
+        a(href = '../reporte', '/reporte.', target='_blank')),
       textOutput("currentTime")
     ),
     mainPanel(
@@ -74,7 +74,7 @@ shinyUI(fluidPage(
         column(width = 2, downloadButton('downloadData1', 'CSV')),
         column(width = 2, downloadButton('downloadData2', 'XLS')),
         column(width = 2, downloadButton('downloadData3', 'SHP')),
-        column(width = 2, offset = 4, actionButton('deleteData', 'DEL', icon =icon('erase', lib = "glyphicon")))
+        column(width = 2, offset = 2, actionButton('deleteData', 'DEL', icon =icon('erase', lib = "glyphicon")))
       ),
       tags$hr()
     )
