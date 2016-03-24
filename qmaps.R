@@ -1035,12 +1035,9 @@ main <- function (path, sheet = 1, file, paralelo = FALSE) {
 # guarda en un archivo separado. Incluye segumiento del proceso.
 # En este caso siempre se procesa en paralelo.
 main2 <- function (path, sheet, file, id) {
-  options(show.error.messages = FALSE)
-  map.is.visible <<- FALSE
-
   # Almacena el Process ID
   pid.ldom.php(id, Sys.getpid())
-  
+
   # Procesamiento por lote
   matricula <- lee(path, sheet)
 
@@ -1049,6 +1046,7 @@ main2 <- function (path, sheet, file, id) {
   require(doParallel)
   registerDoParallel(cores = (detectCores() - 1)) # Mínimo 2 procesadores
 
+  map.is.visible <<- FALSE
   res <- ldply(1:length(matricula$mun), function(n) {
     # Procesa la dirección y obtiene la coordenada geográfica probable
     c <- try(atomizar(podar(identifica(matricula[n,]))), silent = TRUE)
@@ -1062,15 +1060,13 @@ main2 <- function (path, sheet, file, id) {
     c
   }, .parallel = TRUE)
 
-  # Reporta que se concluyó el froceso
-  fin.ldom.php(id)
-
   # Guarda en el sentido en el que fue generado (orden lógico)
   # Intercambia el orden de las columnas
   require(openxlsx)
   write.xlsx(merge(matricula, res[c(7, 1:6)]), file)
 
-  return(0)
+  # Reporta que se concluyó el froceso
+  fin.ldom.php(id)
 }
 
 # Referencias:

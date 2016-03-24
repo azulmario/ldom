@@ -232,26 +232,23 @@ ldom.php <- function(file_in, sheet, file_out, size) {
   id
 }
 
-# Almacena el pid del lote
+# Da de alta en identificador del proceso
 pid.ldom.php <- function(id, pid) {
   dbconn <- odbcConnect("local")
   sqlQuery(dbconn, paste("UPDATE ldom SET pid = ", pid, " WHERE id = ",id,";",sep=""))
   odbcClose(dbconn)
-  return(NULL)
 }
 
 avance.ldom.php <- function(id) {
   dbconn <- odbcConnect("local")
   sqlQuery(dbconn, paste("UPDATE ldom SET biased = biased + 1 WHERE id = ",id,";",sep=""))
   odbcClose(dbconn)
-  return(NULL)
 }
 
 fin.ldom.php <- function(id) {
   dbconn <- odbcConnect("local")
-  sqlQuery(dbconn, paste("UPDATE ldom SET time_end = now() AT TIME ZONE 'America/Mexico_City' WHERE id = ",id,";",sep=""))
+  sqlQuery(dbconn, paste("UPDATE ldom SET time_end = now() AT TIME ZONE 'America/Mexico_City', pid = NULL WHERE id = ",id,";",sep=""))
   odbcClose(dbconn)
-  return(NULL)
 }
 
 lee.ldom.php <- function() {
@@ -261,22 +258,11 @@ lee.ldom.php <- function() {
   id
 }
 
-# Da de alta en identificador del proceso
-inicio.ldom.php <- function(id) {
-  require('Hmisc')
-  pid <- first.word(gsub("^ ", "", system("ps -o pid,cmd -C R |grep source", intern = TRUE)[2]))
-  dbconn <- odbcConnect("local")
-  sqlQuery(dbconn, paste("UPDATE ldom SET pid = ",pid," WHERE id = ",id,";",sep=""))
-  odbcClose(dbconn)
-  return(NULL)
-}
-
 # Elimina un registro
 remove.ldom.php <- function(id) {
   dbconn <- odbcConnect("local")
   sqlQuery(dbconn, paste("DELETE FROM ldom WHERE id = ",id,";",sep=""))
   odbcClose(dbconn)
-  return(NULL)
 }
 
 # NOTAS
