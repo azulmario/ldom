@@ -72,8 +72,8 @@ shinyServer(function(input, output, session) {
     if(libre) {
       return("Servidor ocupado.")
     }
-    
-    kk <- paste('/srv/shiny-server/docs/out/', 'r', format(Sys.time()), '.xlsx', sep='')
+
+    kk <- paste('/srv/shiny-server/docs/out/r', format(Sys.time()), '.xlsx', sep='')
     id <- ldom.php(file_in = jj, sheet = input$sheet, file_out = kk, size = ll)
     opetus <- paste("/usr/bin/Rscript -e \"source('/srv/shiny-server/ldom/qmaps.R'); main2(path = '",jj,"', sheet = ",input$sheet,", file = '",kk,"', id = ",id,");\" --vanilla &", sep='') 
     system(opetus)
@@ -227,7 +227,7 @@ shinyServer(function(input, output, session) {
         writeOGR(res, dsn=paste('/srv/shiny-server/docs/shp/', str_sub(ffi, start = 28, end=47),'.shp',sep=''), layer="ldom", driver="ESRI Shapefile")
         zip(zipfile='/srv/shiny-server/docs/shp/fbCrawlExport.zip', files="/srv/shiny-server/docs/shp", flags = "-r9Xj")
         file.copy("/srv/shiny-server/docs/shp/fbCrawlExport.zip", file)
-        system("rm /srv/shiny-server/docs/shp/*.*")
+        system("rm -f /srv/shiny-server/docs/shp/*.*")
       }
     }
   )
@@ -237,11 +237,16 @@ shinyServer(function(input, output, session) {
     if (length(s)) {
       r <- lee.ldom.php()[s[1],]
       if(is.na(r$time_end)) {
-        system(paste("kill ", r$pid, "", sep = ""))
-      } else {
-        system(paste("rm '", r$file_out, "'", sep = ""))
+        system(paste("pkill -TERM -P ", r$pid, sep = ""))
+        progress$close()
+        libre <<- 0
+        tam <<- 0
+        tamc <<- 0
+        tam0 <<- 0
+        tamp <<- 0
+        tamZ <<- 1
       }
-      system(paste("rm '", r$file_in, "'", sep = ""))
+      system(paste("rm -f '", r$file_out, "'", sep = ""))
       remove.ldom.php(r$id)
     }
   })
