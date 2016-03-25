@@ -8,14 +8,13 @@ source("qmaps.R")
 
 options(shiny.maxRequestSize = 9*1024^2)
 shinyServer(function(input, output, session) {
-  jj <- ""
-  ll <- 0
-  libre <- 0
-  tam <- 0
-  tamc <- 0
-  tam0 <- 0
-  tamp <- 0
-  tamZ <- 1
+  jj <- "" # Nombre del archivo subido
+  ll <- 0 # Número de elementos de pestaña seleccionada
+  tamc <- 0 # Número de lotes de bitácora (entero)
+  tame <- 0 # Numero de elemetos del lote procesado (entero)
+  tam0 <- 0 # Numero de elemetos ya procesados del lote (entero menor tame)
+  tamp <- FALSE # Indica si se está ejecutando un lote (boleano), pero sin la intervención de otras funciones
+  tamZ <- TRUE # Asegura que se imprima la bitácora vacía
   progress <- NULL
 
   output$matricula <- renderTable({
@@ -58,18 +57,13 @@ shinyServer(function(input, output, session) {
 
   ntext <- eventReactive(input$goButton, {
     ldom <- lee.ldom.php()
-    if(length(ldom$size) == 0 || !is.na(ldom[1,]$time_end) ) {
-      libre <<- 0      
-    } else {
-      libre <<- 1
-    }
     if(jj == "") {
       return("Aún no ha subido el archivo de trabajo.")
     }
     if(ll == 0) {
       return("Lote sin direcciones por procesar.")
     }
-    if(libre) {
+    if(!(length(ldom$size) == 0 || !is.na(ldom[1,]$time_end))) {
       return("Servidor ocupado.")
     }
 
@@ -77,7 +71,6 @@ shinyServer(function(input, output, session) {
     id <- ldom.php(file_in = jj, sheet = input$sheet, file_out = kk, size = ll)
     opetus <- paste("/usr/bin/Rscript -e \"source('/srv/shiny-server/ldom/qmaps.R'); main2(path = '",jj,"', sheet = ",input$sheet,", file = '",kk,"', id = ",id,");\" --vanilla &", sep='') 
     system(opetus)
-    libre <<- 1
     paste("¡Espere a que termine el proceso! Al finalizar, busqué en la bitácora de trabajo el número ", id, ".", sep ="")
   })
 
@@ -91,27 +84,25 @@ shinyServer(function(input, output, session) {
     imprime <- 0
     if(length(ldom$biased) > 0) {
       if(is.na(ldom[1,]$time_end)) {
-        if(tamp == 0) {
-          tamp <<- 1
+        if(tamp == FALSE) {
+          tamp <<- TRUE
           progress <<- shiny::Progress$new(min=0, max=ldom[1,]$size)
           progress$set(value = ldom[1,]$biased+1, message = 'Búsquedas en proceso', detail = paste(ldom[1,]$biased, '/', ldom[1,]$size, sep=''))
           imprime <- 1
         }
-        libre <<- 1
       } else {
-        if(tamp == 1) {
-          tamp <<- 0
+        if(tamp == TRUE) {
+          tamp <<- FALSE
           progress$close()
           imprime <- 1
         }
-        libre <<- 0
       }
       if(tamc != length(ldom$id)) {
         tamc  <<- length(ldom$id)
         imprime <- 1
       }
-      if(tam != ldom[1,]$size) {
-        tam  <<- ldom[1,]$size
+      if(tame != ldom[1,]$size) {
+        tame  <<- ldom[1,]$size
         imprime <- 1
       }
       if(tam0 != ldom[1,]$biased) {
@@ -120,10 +111,10 @@ shinyServer(function(input, output, session) {
           progress$set(value = ldom[1,]$biased+1, message = 'Búsquedas en proceso', detail = paste(ldom[1,]$biased, '/', ldom[1,]$size, sep=''))
         }
       }
-      tamZ <<- 1
+      tamZ <<- TRUE
     } else {
       if(tamZ) {
-        tamZ <<- 0
+        tamZ <<- FALSE
         imprime <- 1
       }
     }
@@ -237,14 +228,13 @@ shinyServer(function(input, output, session) {
     if (length(s)) {
       r <- lee.ldom.php()[s[1],]
       if(is.na(r$time_end)) {
-        system(paste("pkill -TERM -P ", r$pid, sep = ""))
+        system(paste("pkill -TERM -P ", r$pid, " ; kill -s TERM ", r$pid, sep = ""))
         progress$close()
-        libre <<- 0
-        tam <<- 0
+        tame <<- 0
         tamc <<- 0
         tam0 <<- 0
-        tamp <<- 0
-        tamZ <<- 1
+        tamp <<- FALSE
+        tamZ <<- TRUE
       }
       system(paste("rm -f '", r$file_out, "'", sep = ""))
       remove.ldom.php(r$id)
