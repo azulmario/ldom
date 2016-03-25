@@ -251,4 +251,9 @@ shinyServer(function(input, output, session) {
     }
   })
 
+  session$onSessionEnded(function() {
+    #Borra archivos antiguos para no saturar el directorio
+    system("find /srv/shiny-server/docs/in -mtime 7 -exec rm -f {} \\;")
+  })
+
 })
