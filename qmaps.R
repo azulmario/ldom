@@ -1,6 +1,8 @@
+# The MIT License (MIT)
+# Copyright (c) 2015-2016 Mario Hernández Morales
+# 
 # Librería que implementa la búsqueda inteligente de
 # domicilios geográficos mediante árbol de decisión.
-# Mario Hernández Morales / 2015 - 2016
 
 library(stringr)    # Para la conversión de tipos numéricos a cadenas
 library(stringdist) # Para las comparaciones de nombres topográficos

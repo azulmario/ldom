@@ -1,3 +1,6 @@
+# The MIT License (MIT)
+# Copyright (c) 2016 Mario Hernández Morales
+# 
 library(RODBC) # Para realizar las conexiones con PostgreSQL
 
 #Municipio 
