@@ -448,6 +448,9 @@ identifica_num <- function (dom.num, r_vld.cve_via, r_vld.nombre, r_vld.BM) {
 # Es un algoritmo voraz para la construcción automática de árboles
 # de decisión, que selecciona en cada paso el mejor atributo.
 # El mejor es el más discrimina (potencialmente más útil).
+# Está basado en el principio de entropía informática (Shannon 1951),
+# que mide el grado de aleatoriedad e incertidumbre
+# de los datos, también puede verse como una medida del desorden.
 
 # El proceso de construcción es iterativo:
 # 1- Se selecciona un subconjunto de ejemplos del conjunto
