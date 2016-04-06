@@ -280,7 +280,7 @@ remove.ldom.php <- function(id) {
 #[local]
 #Driver = /usr/lib/x86_64-linux-gnu/odbc/psqlodbcw.so
 #Servername = localhost
-#Port = 15432
+#Port = 5432
 #Database = *
 #Username = **
 #Password = ***
@@ -292,9 +292,3 @@ remove.ldom.php <- function(id) {
 
 # Iniciar la aplicación con:
 #> odbcinst -q -d
-
-# 16 de octubre de 2015
-# @TODO actualizar, respaldar y distribuir la nueve versión.
-# En tabla colonias se hicieron cambios
-# cve_asen '0085' conservada
-# Rep con 5424, el 5424 014 "San Antonio del Carmen" 7 014-001 014-0887 484 mt. CP 37800
