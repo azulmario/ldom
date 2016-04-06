@@ -11,13 +11,13 @@ Para su desarrollo se implementa una técnica de inteligencia artificial denomin
 La información de las direcciones se tienen almacenadas en un archivo con los campos de la dirección separadas según la norma técnica de domicilios geográficos de Inegi.
 
 Por ejemplo, para localizar el siguiente domicilio:
-```{r, echo=FALSE}
-rm(list=ls(all=TRUE))
-source("qmaps.R")
-path = "dom.xlsx"
-matricula <- lee(path, 3)
-n <- sample(1:length(matricula$mun), 1)
-dom <- matricula[n,]
+```{r, echo=FALSE, warning=FALSE}
+source("qmaps.R", echo = FALSE)
+library(xtable)
+map.is.visible <<- TRUE
+```
+```{r}
+dom <- lee("dom.xlsx", 4)[1,]
 
 renderTable({
   t(dom)
@@ -27,7 +27,6 @@ renderTable({
 El método consiste en utilizar la misma técnica de los usuarios al capturar una dirección, primero se captura el municipio, con ello tenemos la primera ubicación, más burda, pero es el inicio para localizar el domicilio:
 
 ```{r}
-map.is.visible <<- TRUE
 r_mun <- identifica_mun(dom$mun)
 mapa
 ```
@@ -61,32 +60,29 @@ mapa
 ```
 No se utiliza el Código postal, pero es posible utilizar las entre calles o esquinas.
 
-## Construcción del árbol de desición
+# Construcción del árbol de desición
 
 Crea el árbol de decisión:
 ```{r}
 Tt <- identifica(dom, TRUE)
-renderTable({
-  as.table(entropia(Tt), dnn="Entropía")
-})
+entropia(Tt)
 mapa
 ```
+
 Podar el árbol:
 ```{r}
-Tt <- podar(Tt, TRUE)
-renderTable({
-  as.table(entropia(Tt), dnn="Entropía")
-})
+Pt <- podar(Tt, TRUE)
+entropia(Pt)
 mapa
 ```
+
 Atomiza el árbol podado:
 ```{r}
-Tt <- atomizar(Tt, TRUE)
-renderTable({
-  as.table(entropia(Tt), dnn="Entropía")
-})
+At <- atomizar(Pt, TRUE)
+entropia(At)
 mapa
 renderTable({
-  t(Tt)
+  t(At)
 })
 ```
+
