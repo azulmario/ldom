@@ -24,7 +24,6 @@ Para un mejor aprovechamiento del sistema de "Localización automatizada de domi
 - Hacer una prueba previa con pocos datos, unos 10, para verificar que se estén utilizando correctamente los campos de entrada.
 - El archivo de Excel puede contener fórmulas para construir las variables de entrada, por ejemplo: '=SI(Q9,Q9,R9)' para juntar las variables S_NUM_EXT y S_LETRA_EXT. O bien '=EXTRAEB(E2,7,100)' para acortar un texto.
 - La variable n es opcional, ya que si se omite se genera una variable que es un número consecutivo.
-- Para mejorar la eficiencia, se recomienda ordenar los datos por municipio y localidad.
 
 ```{r, eval=FALSE, include=FALSE}
 ## Pruebas de rendimiento
@@ -47,7 +46,7 @@ ad <- NULL
 for(var in c(1:600))
   ad <- rbind(ad, test())
 colnames(ad)[c(1,2,5,6)] <- c("Entropía", "Tiempo", "Nivel", "Error")
-devtools::install_github("wesm/feather/R")
+#devtools::install_github("wesm/feather/R")
 write_feather(as.data.frame(ad), "ad.data")
 ```
 
@@ -103,7 +102,7 @@ qplot(ad[,1], ad[,2])+
   labs(x="Tiempo", y="Entropía")
 ```
 
-Como puede observarse los datos presentan una combinación de casos en los cuales algunos se calculan muy rápido y otros no. Aquí, entonces, es importante el uso del cache inicial, por lo que se recomienda ordenar por municipio y localidad.
+Como puede observarse los datos presentan una combinación de casos en los cuales algunos se calculan muy rápido y otros no. Aquí, entonces, es importante el uso del cache inicial, por lo que internamente se ordenar por municipio y localidad.
 
 ## Distribución del nivel
 
