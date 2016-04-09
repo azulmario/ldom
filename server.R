@@ -72,7 +72,7 @@ shinyServer(function(input, output, session) {
 
     kk <- paste('/srv/shiny-server/docs/out/r', format(Sys.time()), '.xlsx', sep='')
     id <- ldom.php(file_in = jj, sheet = input$sheet, file_out = kk, size = ll)
-    opetus <- paste("/usr/bin/Rscript -e \"source('/srv/shiny-server/ldom/qmaps.R'); main2(path = '",jj,"', sheet = ",input$sheet,", file = '",kk,"', id = ",id,");\" --vanilla &", sep='') 
+    opetus <- paste("/usr/bin/Rscript -e \"source('/srv/shiny-server/ldom/qmaps.R'); main(path = '",jj,"', sheet = ",input$sheet,", file = '",kk,"', id = ",id,");\" --vanilla &", sep='') 
     system(opetus)
     paste("¡Espere a que termine el proceso! Al finalizar, busqué en la bitácora de trabajo el número ", id, ".", sep ="")
   })

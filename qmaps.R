@@ -934,10 +934,8 @@ atomizar <- function (Ts, map = FALSE) {
 #-------------------------------------------------------------------
 # Lee el archivo de trabajo y realiza la normalización de los datos
 lee <- function(path, sheet = 1) {
-  #require(openxlsx)
-  #matricula <- read.xlsx(xlsxFile = path, sheet = sheet, skipEmptyRows = TRUE, colNames = TRUE)
   require(readxl)
-  matricula <- read_excel(path, sheet)
+  matricula <- readxl::read_excel(path, sheet)
   
   # Normaliza la tabla para que contenga los campos requeridos
   numera <- "n" %in% colnames(matricula)
@@ -994,17 +992,23 @@ lee <- function(path, sheet = 1) {
   # Simplifica el código al no tener que hacer doble verificación
   matricula[is.na(matricula)] <- ""
   
+  # Ordena por municipio y localidad para optimizar el cache inicial
+  matricula <- matricula[with(matricula, order(mun, loc, snt)), ]
+
   return(matricula) 
 }
 
 #-------------------------------------------------------------------
 # Ejecuta el procedimiento sobre el archivo de direcciones y lo
-# guarda en un archivo separado.
-main <- function (path, sheet = 1, file, paralelo = FALSE) {
-  # Muestra los mensajes de alertas, principalmente para depuración
-  assign("last.warning", NULL, envir = baseenv())
-  options(show.error.messages = TRUE)
+# guarda en un archivo separado. Incluye seguimiento del proceso.
+# En este caso siempre se procesa en paralelo.
+main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = TRUE) {
+  # Almacena el Process ID
+  if(seguimiento) pid.ldom.php(id, Sys.getpid())
 
+  # Oculta los mensajes de alertas, habilitar para depuración
+  assign("last.warning", NULL, envir = baseenv())
+  options(show.error.messages = FALSE)
   map.is.visible <<- FALSE
 
   # Procesamiento por lote
@@ -1014,44 +1018,9 @@ main <- function (path, sheet = 1, file, paralelo = FALSE) {
   require(plyr)
   if(paralelo) {
     require(doParallel)
-    registerDoParallel(cores = (detectCores() - 1))
+    registerDoParallel(cores = (detectCores() - 1)) # Mínimo 2 procesadores
   }
-  res <- ldply(1:length(matricula$mun), function(n) {
-      # Procesa la dirección y obtiene la coordenada geográfica probable
-      c <- try(atomizar(podar(identifica(matricula[n,]))), silent = TRUE)
-      if(class(c) == "try-error") {
-        c <- data.frame(niv=-2, BM=0, cve=0, nombre=0, lat=0, lon = 0)
-      }
-      # Agrega el número de renglón
-      c$n <-matricula[n,]$n
-      c
-  }, .parallel = paralelo, .progress = "time")
 
-  # Guarda en el sentido en el que fue generado (orden lógico)
-  # Intercambia el orden de las columnas
-  require(openxlsx)
-  write.xlsx(merge(matricula, res[c(7, 1:6)]), file)
-  
-  warnings()
-}
-
-#-------------------------------------------------------------------
-# Ejecuta el procedimiento sobre el archivo de direcciones y lo
-# guarda en un archivo separado. Incluye segumiento del proceso.
-# En este caso siempre se procesa en paralelo.
-main2 <- function (path, sheet, file, id) {
-  # Almacena el Process ID
-  pid.ldom.php(id, Sys.getpid())
-
-  # Procesamiento por lote
-  matricula <- lee(path, sheet)
-
-  # Procesamiento en paralelo y secuencial
-  require(plyr)
-  require(doParallel)
-  registerDoParallel(cores = (detectCores() - 1)) # Mínimo 2 procesadores
-
-  map.is.visible <<- FALSE
   res <- ldply(1:length(matricula$mun), function(n) {
     # Procesa la dirección y obtiene la coordenada geográfica probable
     c <- try(atomizar(podar(identifica(matricula[n,]))), silent = TRUE)
@@ -1059,19 +1028,22 @@ main2 <- function (path, sheet, file, id) {
       c <- data.frame(niv=-2, BM=0, cve=0, nombre=0, lat=0, lon = 0)
     }
     # Reporta el avance a la base de datos
-    avance.ldom.php(id)
+    if(seguimiento) avance.ldom.php(id)
     # Agrega el número de renglón
     c$n <-matricula[n,]$n
-    c
-  }, .parallel = TRUE)
+    return(c)
+  }, .parallel = paralelo, .progress = "time")
 
   # Guarda en el sentido en el que fue generado (orden lógico)
   # Intercambia el orden de las columnas
   require(openxlsx)
-  write.xlsx(merge(matricula, res[c(7, 1:6)]), file)
+  openxlsx::write.xlsx(merge(matricula, res[c(7, 1:6)]), file)
 
   # Reporta que se concluyó el froceso
-  fin.ldom.php(id)
+  if(seguimiento) fin.ldom.php(id)
+
+  #warnings()
+  return(0)
 }
 
 # Referencias:
