@@ -13,13 +13,12 @@ La información de las direcciones se tienen almacenadas en un archivo con los c
 Por ejemplo, para localizar el siguiente domicilio:
 ```{r, echo=FALSE, warning=FALSE}
 source("qmaps.R", echo = FALSE)
-library(xtable)
 map.is.visible <<- TRUE
 ```
 ```{r}
 dom <- lee("dom.xlsx", 4)[1,]
 
-renderTable({
+shiny::renderTable({
   t(dom)
 })
 ```
@@ -81,8 +80,10 @@ Atomiza el árbol podado:
 At <- atomizar(Pt, TRUE)
 entropia(At)
 mapa
-renderTable({
+shiny::renderTable({
   t(At)
 })
 ```
 
+```{r child = 'cap2.Rmd'}
+```
