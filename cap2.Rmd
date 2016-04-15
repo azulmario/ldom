@@ -31,7 +31,6 @@ ad <- NULL
 for(var in c(1:600))
   ad <- rbind(ad, test())
 colnames(ad)[c(1,2,5,6)] <- c("Entropía", "Tiempo", "Nivel", "Error")
-#devtools::install_github("wesm/feather/R")
 write_feather(as.data.frame(ad), "ad.data")
 ```
 
@@ -46,13 +45,12 @@ require(ggplot2)
 
 El tiempo de ejecución con 1 procesador tiene la siguiente distribución en segundos:
 ```{r}
-summary(ad[,2])
+  summary(ad$Tiempo)
 ```
 
 ##
 ```{r}
-require('ggplot2')
-qplot(ad[,2], geom="histogram") +
+qplot(ad$Tiempo, geom="histogram", bins = 40) +
   labs(title="Distribución del tiempo de ejecución") +
   labs(x="Tiempo en segundos", y="Cantidad")
 ```
@@ -67,12 +65,12 @@ de los datos, también puede verse como una medida del desorden.
 La entropía observada presenta la siguiente distribución:
 
 ```{r}
-summary(ad[,1])
+  summary(ad$Entropía)
 ```
 
 ##
 ```{r}
-qplot(ad[,1], geom="histogram")+
+qplot(ad$Entropía, geom="histogram", bins = 40) +
   labs(title="Distribución de la entropía informática") +
   labs(x="Entropía", y="Cantidad")
 ```
@@ -83,7 +81,7 @@ La relación entre la entropía y el tiempo de ejecución conserva una relación
 
 ##
 ```{r}
-qplot(ad[,1], ad[,2])+
+qplot(ad$Entropía, ad$Tiempo) +
   labs(title="Tiempo de ejecución y Entropía") +
   labs(x="Tiempo", y="Entropía")
 ```
@@ -94,12 +92,12 @@ Como puede observarse los datos presentan una combinación de casos en los cuale
 
 La mayoría de los registros llegan a estimarse a nivel de número exterior. En general se tiene la siguiente distribución:
 ```{r}
-summary(ad[,5])
+  summary(ad$Nivel)
 ```
 
 ##
 ```{r}
-qplot(ad$Nivel)+ 
+qplot(ad$Nivel) +
   labs(title="Histograma para nivel") +
   labs(x="Nivel", y="Cantidad")
 ```
@@ -110,12 +108,12 @@ Observe que los niveles de colonia y localidad son los menores.
 
 Cuando el error a nivel de número exterior no es cero, tiene la siguiente distribución de probabilidad:
 ```{r}
-summary(ad[which(ad$Nivel == "Número exterior" & ad[,6] > 0),6])
+  summary(ad$Error[which(ad$Nivel == "Número exterior" & ad$Error > 0)])
 ```
 
 ##
 ```{r}
-qplot(ad[which(ad$Nivel == "Número exterior" & ad[,6] > 0),6], geom="histogram")+
+qplot(ad$Error[which(ad$Nivel == "Número exterior" & ad$Error > 0)], geom="histogram", bins = 30) +
   geom_density(col=2) + 
   labs(title="Distribución del error nivel de pie de casa") +
   labs(x="Error", y="Cantidad")
@@ -126,12 +124,12 @@ qplot(ad[which(ad$Nivel == "Número exterior" & ad[,6] > 0),6], geom="histogram"
 Cuando el error a nivel de calle no es cero, tiene la siguiente distribución de probabilidad:
 
 ```{r}
-summary(ad[which(ad$Nivel == "Calle" & ad[,6] > 0),6])
+  summary(ad$Error[which(ad$Nivel == "Calle" & ad$Error > 0)])
 ```
 
 ##
 ```{r}
-qplot(ad[which(ad$Nivel == "Calle" & ad[,6] > 0),6], geom="histogram") +
+qplot(ad$Error[which(ad$Nivel == "Calle" & ad$Error > 0)], geom="histogram", bins = 20) +
   geom_density(col=2) + 
   labs(title="Distribución del error nivel de calle") +
   labs(x="Error", y="Cantidad")
@@ -141,12 +139,12 @@ qplot(ad[which(ad$Nivel == "Calle" & ad[,6] > 0),6], geom="histogram") +
 
 Cuando el error a nivel de colonia no es cero, tiene la siguiente distribución de probabilidad:
 ```{r}
-summary(ad[which(ad$Nivel == "Colonia" & ad[,6] > 0),6])
+  summary(ad$Error[which(ad$Nivel == "Colonia" & ad$Error > 0)])
 ```
 
 ##
 ```{r}
-qplot(ad[which(ad$Nivel == "Colonia" & ad[,6] > 0),6], geom="histogram") +
+qplot(ad$Error[which(ad$Nivel == "Colonia" & ad$Error > 0)], geom="histogram", bins = 10) +
   geom_density(col=2) + 
   labs(title="Distribución del error nivel de colonia") +
   labs(x="Error", y="Cantidad")
