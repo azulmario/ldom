@@ -33,14 +33,14 @@ mapa
 Una vez contando con el municipio, se procede a localizar la localidad:
 
 ```{r}
-r_loc <- identifica_loc(dom$loc, r_mun$cve, r_mun$BM, r_mun$nombre)
+r_loc <- identifica_loc(dom$loc, r_mun)
 mapa
 ```
 
 Se localiza la colonia o asentamiento:
 
 ```{r}
-r_snt <- identifica_snt(dom$snt, r_loc$cve, r_loc$BM, r_loc$nombre)
+r_snt <- identifica_snt(dom$snt, r_loc)
 mapa
 ```
 
@@ -54,7 +54,7 @@ mapa
 Y finalmente el número exterior.
 
 ```{r}
-r_num <- identifica_num(dom$num, r_vld[1,]$cve, r_vld[1,]$nombre, r_vld[1,]$BM)
+r_num <- identifica_num(dom$num, r_vld[1,])
 mapa
 ```
 No se utiliza el Código postal, pero es posible utilizar las entre calles o esquinas.

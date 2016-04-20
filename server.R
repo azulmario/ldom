@@ -29,6 +29,9 @@ shinyServer(function(input, output, session) {
 
     #Renombrar
     jj <<- file.path("/srv/shiny-server/docs/in", inFile$name)
+    jj <<- gsub("[[:space:]]+", "_", jj)
+    jj <<- gsub("\\(", "", jj)
+    jj <<- gsub("\\)", "", jj)
     system(paste('cp -f', inFile$datapath, jj))
     #Número de pestañas
     sheets <- readxl::excel_sheets(jj)
@@ -47,7 +50,7 @@ shinyServer(function(input, output, session) {
       })
     }
     #Leer
-    matricula <- lee(jj, input$sheet)
+    matricula <- lee(jj, input$sheet, iforder = FALSE)
     ll <<- length(matricula$n)
     if(ll == 1) {
       return(xtable(matricula))
