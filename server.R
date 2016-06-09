@@ -2,15 +2,19 @@
 # Copyright (c) 2016 Mario Hernández Morales
 # 
 library(shiny)
+library(shinyBS)
+library(leaflet)
 library(DT)
 library(xtable)
 library(utils)
 library(tools)
-library(readxl)
 source("qmaps.R")
 
-options(shiny.maxRequestSize = 9*1024^2)
+vals <- reactiveValues(count=0)
+
+options(shiny.maxRequestSize = -1) # ¡Alerta! 25*1024^2
 shinyServer(function(input, output, session) {
+  isolate(vals$count <- vals$count + 1)
   jj <- "" # Nombre del archivo subido
   ll <- 0 # Número de elementos de pestaña seleccionada
   tamc <- 0 # Número de lotes de bitácora (entero)
@@ -19,6 +23,7 @@ shinyServer(function(input, output, session) {
   tamp <- FALSE # Indica si se está ejecutando un lote (boleano), pero sin la intervención de otras funciones
   tamZ <- TRUE # Asegura que se imprima la bitácora vacía
   progress <- NULL
+  progrest <- NULL
 
   output$matricula <- renderTable({
     ll <<- 0
@@ -27,13 +32,13 @@ shinyServer(function(input, output, session) {
     if (is.null(inFile))
       return(NULL)
 
-    #Renombrar
+    # Renombrar
     jj <<- file.path("/srv/shiny-server/docs/in", inFile$name)
     jj <<- gsub("[[:space:]]+", "_", jj)
     jj <<- gsub("\\(", "", jj)
     jj <<- gsub("\\)", "", jj)
     system(paste('cp -f', inFile$datapath, jj))
-    #Número de pestañas
+    # Número de pestañas
     sheets <- readxl::excel_sheets(jj)
     maksimi <- length(sheets)
     if(maksimi > 1) {
@@ -50,11 +55,12 @@ shinyServer(function(input, output, session) {
       })
     }
     #Leer
-    matricula <- lee(jj, input$sheet, iforder = FALSE)
-    ll <<- length(matricula$n)
-    if(ll == 1) {
+    matricula <- lee(jj, input$sheet, iforder = FALSE, ifcompact = TRUE)
+    ll <<- nrow(matricula)
+    if (ll < 7) {
       return(xtable(matricula))
     }
+    # Regresa una versión corta para visualizar
     xtable(matricula[c(1:min(5,ll-1),ll),])
   },
   caption = "Vista previa de los datos:",
@@ -73,11 +79,11 @@ shinyServer(function(input, output, session) {
       return("Servidor ocupado.")
     }
 
-    kk <- paste('/srv/shiny-server/docs/out/r', format(Sys.time()), '.xlsx', sep='')
+    kk <- paste0('/srv/shiny-server/docs/out/r', format(Sys.time()), '.xlsx')
     id <- ldom.php(file_in = jj, sheet = input$sheet, file_out = kk, size = ll)
-    opetus <- paste("/usr/bin/Rscript -e \"source('/srv/shiny-server/ldom/qmaps.R'); main(path = '",jj,"', sheet = ",input$sheet,", file = '",kk,"', id = ",id,");\" --vanilla &", sep='') 
+    opetus <- paste0("/usr/bin/Rscript -e \"source('/srv/shiny-server/ldom/qmaps.R'); main(path = '",jj,"', sheet = ",input$sheet,", file = '",kk,"', id = ",id,");\" --vanilla &") 
     system(opetus)
-    paste("¡Espere a que termine el proceso! Al finalizar, busqué en la bitácora de trabajo el número ", id, ".", sep ="")
+    paste0("¡Espere a que termine el proceso! Al finalizar, busqué en la bitácora de trabajo el número ", id, ".")
   })
 
   output$nText <- renderText({
@@ -92,8 +98,7 @@ shinyServer(function(input, output, session) {
       if(is.na(ldom[1,]$time_end)) {
         if(tamp == FALSE) {
           tamp <<- TRUE
-          progress <<- shiny::Progress$new(min=0, max=ldom[1,]$size)
-          progress$set(value = ldom[1,]$biased+1, message = 'Búsquedas en proceso', detail = paste(ldom[1,]$biased, '/', ldom[1,]$size, sep=''))
+          progress <<- shiny::Progress$new(min=1, max=ldom[1,]$size)
           imprime <- 1
         }
       } else {
@@ -114,7 +119,20 @@ shinyServer(function(input, output, session) {
       if(tam0 != ldom[1,]$biased) {
         tam0  <<- ldom[1,]$biased
         if(tamp) {
-          progress$set(value = ldom[1,]$biased+1, message = 'Búsquedas en proceso', detail = paste(ldom[1,]$biased, '/', ldom[1,]$size, sep=''))
+          A1 <-ldom[1,]$size
+          A2 <- ldom[1,]$biased
+          B1 <- strptime(ldom[1,6], "%Y-%m-%d %H:%M:%S")
+          B2 <- Sys.time()
+          E <- B1+((B2-B1)*A1/A2)
+          if(A2 == 0) {
+            progress$set(value = 1, message = "Preparando")
+          } else if (4 > A2) {
+            progress$set(value = A2+1, message = paste0("Procesando", str_dup('.', A2)))
+          } else if (A1 / 2 > A2 && 400 > A2) {
+            progress$set(value = A2+1, message = "Procesando...", detail = paste0("(", A2, '/', A1, ")"))
+          } else {
+            progress$set(value = A2+1, message = paste("Faltan:", format(E - B2, digits = 3)), detail = paste0("(", A2, '/', A1, ")"))
+          }
         }
       }
       tamZ <<- TRUE
@@ -168,60 +186,69 @@ shinyServer(function(input, output, session) {
     return('')
   })
 
+  # Descarga en formato CSV
   output$downloadData1 <- downloadHandler(
     filename = function() {
-      s = input$ldom_rows_selected
+      s <- input$ldom_rows_selected
       if (length(s)) {
-        return(paste(str_sub(lee.ldom.php()[s[1],]$file_out, start = 28, end=47), '.csv', sep = ''))
+        return(paste0(str_sub(lee.ldom.php()[s[1],]$file_out, start = 28, end=47), '.csv'))
       }
       'error'
     },
     content = function(file) {
-      s = input$ldom_rows_selected
+      s <- input$ldom_rows_selected
       if (length(s)) {
-        require(readxl)
-        res <- read_excel(as.character(lee.ldom.php()[s[1],]$file_out))
+        require(feather)
+        res <- read_feather(paste0(as.character(lee.ldom.php()[s[1],]$file_out), ".dat"))
         write.csv(res, file, row.names = FALSE)
       }
     }
   )
 
+  # Descarga en formato XLSX
   output$downloadData2 <- downloadHandler(
     filename = function() {
-      s = input$ldom_rows_selected
+      s <- input$ldom_rows_selected
       if (length(s)) {
-        return(paste(str_sub(lee.ldom.php()[s[1],]$file_out, start = 28, end=47), '.xlsx', sep = ''))
+        return(paste0(str_sub(lee.ldom.php()[s[1],]$file_out, start = 28, end=47), '.xlsx'))
       }
       'error'
     },
     content = function(file) {
-      s = input$ldom_rows_selected
+      s <- input$ldom_rows_selected
       if (length(s)) {
+        if(!file.exists(as.character(lee.ldom.php()[s[1],]$file_out))) {
+          require(feather)
+          res <- read_feather(paste0(as.character(lee.ldom.php()[s[1],]$file_out), ".dat"))
+          require(openxlsx)
+          openxlsx::write.xlsx(res, as.character(lee.ldom.php()[s[1],]$file_out))
+        }
         file.copy(as.character(lee.ldom.php()[s[1],]$file_out), file)
       }
     }
   )
 
+  # Descarga en formato SHP
   output$downloadData3 <- downloadHandler(
     filename = function() {
-      s = input$ldom_rows_selected
+      s <- input$ldom_rows_selected
       if (length(s)) {
-        return(paste(str_sub(lee.ldom.php()[s[1],]$file_out, start = 28, end=47), '.zip', sep = ''))
+        return(paste0(str_sub(lee.ldom.php()[s[1],]$file_out, start = 28, end=47), '.zip'))
       }
       'error'
     },
     content = function(file) {
-      s = input$ldom_rows_selected
+      s <- input$ldom_rows_selected
       if (length(s)) {
-        require(readxl)
         ffi <- as.character(lee.ldom.php()[s[1],]$file_out)
-        res <- read_excel(ffi)
-        res <- as.data.frame(res)
+        require(feather)
+        res <- read_feather(paste0(ffi, ".dat"))
+        res <- as.data.frame(res[which(res$lon != 0),])
         require(sp)
         coordinates(res)<-~lon+lat
         proj4string(res)<-CRS("+proj=longlat +datum=WGS84 +no_defs")
         require(rgdal)
-        writeOGR(res, dsn=paste('/srv/shiny-server/docs/shp/', str_sub(ffi, start = 28, end=47),'.shp',sep=''), layer="ldom", driver="ESRI Shapefile")
+        writeOGR(res, dsn=paste0('/srv/shiny-server/docs/shp/', str_sub(ffi, start = 28, end=47),'.shp'), layer="ldom", driver="ESRI Shapefile")
         zip(zipfile='/srv/shiny-server/docs/shp/fbCrawlExport.zip', files="/srv/shiny-server/docs/shp", flags = "-r9Xj")
         file.copy("/srv/shiny-server/docs/shp/fbCrawlExport.zip", file)
         system("rm -f /srv/shiny-server/docs/shp/*.*")
@@ -229,12 +256,79 @@ shinyServer(function(input, output, session) {
     }
   )
 
+  # Visualiza en mapa
+  output$mymap <- renderLeaflet({
+    s <- input$ldom_rows_selected
+    if (length(s)) {
+      require(feather)
+      res <- read_feather(paste0(as.character(lee.ldom.php()[s[1],]$file_out), ".dat"))
+      res <- res[which(res$lon != 0),]
+      if (length(res$lon) > 0) {
+        leaflet() %>%
+          addProviderTiles("Esri.WorldStreetMap",
+            options = providerTileOptions(noWrap = TRUE, detectRetina = TRUE, reuseTiles = TRUE, minZoom = 8, maxZoom = 19)) %>%
+          addMarkers(lng = res$lon, lat = res$lat, popup = res$ntd, layerId = res$n, clusterOptions = markerClusterOptions(), clusterId = 'clstr')
+      }
+    }
+  })
+
+  output$button_ui <- renderUI({
+    tagList(
+      bsModal("modal1", "Ubicación de domicilios localizados", trigger = "a1", size = "large", leafletOutput("mymap", height = 512), renderText({paste0("Nota: Deslice el cursor sobre un grupo para ver los límites de sus puntos y haga clic para ampliar sus límites.")})),
+      actionButton("a1", "Visor")
+    )
+  })
+
+  # Visualiza el rendimiento
+  output$distPlot <- renderPlot({
+    s <- input$ldom_rows_selected
+    if (length(s)) {
+      require(feather)
+      res <- read_feather(paste0(as.character(lee.ldom.php()[s[1],]$file_out), ".dat"))
+      if (length(res$n) > 0) {
+        res$Nivel <- factor(res$niv, levels = c(0, 1, 2, 3, 4, -1, -2), labels = c("Número exterior", "Entrecalle", "Calle", "Colonia", "Localidad", "No localizada", "Bug"))
+        res$Direcciones <- 1.0
+        res$CBM <- res$BM
+        res$CBM[res$BM == 0] <- "a"
+        res$CBM[res$BM > 0.000 & res$BM <= 0.025] <- "b"
+        res$CBM[res$BM > 0.025 & res$BM <= 0.050] <- "c"
+        res$CBM[res$BM > 0.050 & res$BM <= 0.075] <- "d"
+        res$CBM[res$BM > 0.075 & res$BM <= 0.100] <- "e"
+        res$CBM[res$BM > 0.100] <- "f"
+        res <- res[with(res, order(Nivel, BM)),]
+        res$CBM <- factor(res$CBM, levels = c("f", "e", "d", "c", "b", "a"), labels = c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo", "Sin error") )
+        ppd <- table(res$CBM) > 0
+        cbbPalette <- c()
+        if(ppd[1]) cbbPalette <- c(cbbPalette, "#ff6634")
+        if(ppd[2]) cbbPalette <- c(cbbPalette, "#fecf07") 
+        if(ppd[3]) cbbPalette <- c(cbbPalette, "#66cc9a") 
+        if(ppd[4]) cbbPalette <- c(cbbPalette, "#339832") 
+        if(ppd[5]) cbbPalette <- c(cbbPalette, "#080c9f") 
+        if(ppd[6]) cbbPalette <- c(cbbPalette, "#046394")
+        require(ggplot2)
+        ggplot() + theme_bw()  +
+          geom_bar(aes(y = Direcciones, x = Nivel, fill = CBM), data = res, stat="identity") +
+          theme(legend.title = element_blank()) + 
+          ggtitle("Nivel y error") + labs(x="Nivel", y="Cantidad de direcciones") +
+          scale_fill_manual(values = cbbPalette)
+      }
+    }
+  })
+  
+  output$button_pt <- renderUI({
+    tagList(
+      bsModal("modal2", "Calidad y precisión de domicilios localizados", trigger = "a2", size = "large", plotOutput("distPlot")),
+      actionButton("a2", "Plot")
+    )
+  })
+
+  # Elimina entrada, incluye interrumpir proceso
   observeEvent(input$deleteData, {
     s <- input$ldom_rows_selected
     if (length(s)) {
       r <- lee.ldom.php()[s[1],]
       if(is.na(r$time_end)) {
-        system(paste("pkill -TERM -P ", r$pid, " ; kill -s TERM ", r$pid, sep = ""))
+        system(paste0("pkill -TERM -P ", r$pid, " ; kill -s TERM ", r$pid))
         progress$close()
         tame <<- 0
         tamc <<- 0
@@ -242,14 +336,28 @@ shinyServer(function(input, output, session) {
         tamp <<- FALSE
         tamZ <<- TRUE
       }
-      system(paste("rm -f '", r$file_out, "'", sep = ""))
+      system(paste0("rm -f '", r$file_out, "'"))
+      system(paste0("rm -f '", r$file_out, ".dat'"))
       remove.ldom.php(r$id)
+
+      if(length(lee.ldom.php()$id) == 0) {
+        restart.ldom.php()
+        system("rm -f /srv/shiny-server/docs/in/*")
+      }
     }
   })
 
   session$onSessionEnded(function() {
+    isolate(vals$count <- vals$count - 1)
     #Borra archivos antiguos para no saturar el directorio
-    system("find /srv/shiny-server/docs/in -mtime 7 -exec rm -f {} \\;")
+    ldom <- lee.ldom.php()
+    if (get(isolate(vals$count)) == 0 && (nrow(ldom) == 0 || is.na(ldom[1,]$time_end))) {
+      system("find /srv/shiny-server/docs/in -mtime +7 -type f -exec rm -f {} \\;")
+    }
+  })
+
+  output$count <- renderText({
+    vals$count
   })
 
 })

@@ -2,6 +2,7 @@
 # Copyright (c) 2016 Mario Hernández Morales
 # 
 library(shiny)
+library(shinyBS)
 library(DT)
 
 shinyUI(fluidPage(
@@ -50,6 +51,8 @@ shinyUI(fluidPage(
         a(href = '../dom', '/dom.', target='_blank')),
       p('Reporte de características del programa automatizado:',
         a(href = '../reporte', '/reporte.', target='_blank')),
+      "Sesiones actualmente abiertas de esta aplicación:", 
+      verbatimTextOutput("count"),
       textOutput("currentTime")
     ),
     mainPanel(
@@ -74,10 +77,13 @@ shinyUI(fluidPage(
       h3("Tercer paso"),
       fluidRow(
         column(width = 12, DT::dataTableOutput('ldom')),
+        column(width = 12, tags$hr()),
         column(width = 2, downloadButton('downloadData1', 'CSV')),
         column(width = 2, downloadButton('downloadData2', 'XLS')),
         column(width = 2, downloadButton('downloadData3', 'SHP')),
-        column(width = 2, offset = 2, actionButton('deleteData', 'DEL', icon =icon('erase', lib = "glyphicon")))
+        column(width = 2, uiOutput("button_ui")),
+        column(width = 2, uiOutput("button_pt")),
+        column(width = 2, actionButton('deleteData', 'DEL', icon =icon('erase', lib = "glyphicon")))
       ),
       tags$hr()
     )

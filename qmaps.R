@@ -10,6 +10,7 @@ library(geosphere)  # Cálculo de distancias geográficas
 source("cadenas.R")   # Para la conversión de tipos numéricos a cadenas
 source("conectadb.R") # Para obtener la información de los servidores
 
+
 # Variables de control
 # Para mostrar el mapa durante el diseño, inhabilitar en producción
 map.is.visible = FALSE
@@ -128,7 +129,7 @@ identifica_loc <- function(dom.loc, r_mun) {
     r_loc$niv <- 4
     r_loc$BM <- 1.0 - (1.0 - r_loc$BM) * (1.0 - r_mun$BM) # Teorema de Bayes
     r_loc$nombre <- paste (r_mun$nombre, r_loc$nombre, sep = ", ") # Nombre de localidad
-    r_loc$cve <- paste (r_mun$cve, r_loc$cve, sep = "") # Clave de localidad
+    r_loc$cve <- paste0(r_mun$cve, r_loc$cve) # Clave de localidad
 
     return(r_loc)
   } else {
@@ -206,7 +207,7 @@ identifica_locurb <- function(r_mun) {
     }
     r_loc$niv <- 4
     r_loc$BM <- 1.0 - (1.0 - r_mun$BM) * (1.0 - 1e-7) 
-    r_loc$cve <- paste (m, l, sep = "") # Clave de localidad
+    r_loc$cve <- paste0(m, l) # Clave de localidad
     r_loc$nombre <- paste (r_mun$nombre, r_loc$nombre, sep = ", ") # Nombre de localidad
 
     return(r_loc[c("BM", "cve", "nombre", "lat", "lon", "niv")])
@@ -343,7 +344,7 @@ identifica_vld <- function(dom.vld, r_loc, r_snt = NULL, tipo = TRUE) {
     }
     r_vld$nombre <- paste(r_loc$nombre, r_vld$e, r_vld$nombre, sep = ", ") # Nombre de vialidad
     r_vld$nombre <- gsub(", , ", ", ", r_vld$nombre)
-    r_vld$nombre <- paste(r_vld$nombre, r_vld$apx, sep = "")
+    r_vld$nombre <- paste0(r_vld$nombre, r_vld$apx)
     r_vld$cve <- mapply(str_pad, r_vld$cve, 12, pad = "0")
 
     return(r_vld[,c("BM","cve","nombre","lat","lon","niv")])
@@ -955,13 +956,40 @@ lee <- function(path, sheet = 1, iforder = TRUE, ifcompact = TRUE) {
   matricula <- readxl::read_excel(path, sheet)
   
   # Normaliza la tabla para que contenga los campos requeridos
-  numera <- "n" %in% colnames(matricula)
-  alcance0 <<- list(mun = "mun"  %in% colnames(matricula), loc = "loc" %in% colnames(matricula),
+  alcance0 <<- list(mun = "mun" %in% colnames(matricula), loc = "loc" %in% colnames(matricula),
                     tsnt = "tsnt" %in% colnames(matricula), snt = "snt" %in% colnames(matricula), 
                     tvld = "tvld" %in% colnames(matricula), vld = "vld" %in% colnames(matricula),
-                    num = "num"  %in% colnames(matricula), int = "int" %in% colnames(matricula),
+                    num = "num" %in% colnames(matricula), int = "int" %in% colnames(matricula),
                     ref1 = "ref1" %in% colnames(matricula), ref2 = "ref2" %in% colnames(matricula),
-                    CP = "CP"   %in% colnames(matricula))
+                    CP = "CP" %in% colnames(matricula))
+
+  # De la clave de municipio obtiene el nombre de municipio y lo asigna
+  if(!alcance0$mun && "id_mun" %in% colnames(matricula)) {
+    alcance0$mun <- TRUE
+    ca <- mun.php()
+    matricula$mun <- ""
+    for(n in 1:nrow(matricula)) {
+      if(substring(matricula[n, ]$id_mun, 1, 2) == "11") {
+        matricula[n,]$mun <- as.character(ca[which(ca$cve == as.numeric(substring(matricula[n, ]$id_mun, 3, 5))), ]$nombre)
+      }
+    }
+  }
+
+  # De la clave de localidad obtiene el nombre de localidad
+  if(!alcance0$loc && "id_loc" %in% colnames(matricula)) {
+    alcance0$loc <- TRUE
+    matricula$loc <- as.character(mapply(nloc.php, substring(matricula$id_loc, 3, 5), substring(matricula$id_loc, 6)))
+    
+    if(!alcance0$mun) {
+      alcance0$mun <- TRUE
+      ca <- mun.php()
+      matricula$mun <- ""
+      for(n in 1:nrow(matricula))
+        if(substring(matricula[n, ]$id_mun, 1, 2) == "11")
+          matricula[n,]$mun <- as.character(ca[which(ca$cve == as.numeric(k[n])), ]$nombre )
+    }
+  }
+  
   # Completa con las columnas vacías, donde no se tenga información
   if(!alcance0$mun)
     return
@@ -975,12 +1003,66 @@ lee <- function(path, sheet = 1, iforder = TRUE, ifcompact = TRUE) {
     matricula$num <- ""
   
   # Crea un índice, si no tiene
-  if(!numera) {
-    matricula$n <- 0
-    for(n in 1:length(matricula[,1]))
-      matricula[n,]$n <- n
+  if(!("n" %in% colnames(matricula))) {
+    matricula$n <- c(1:nrow(matricula))
   }
+
+  # Construye una base basado en las columnas con las que se cuentan
+  # minimiza la carga de memoria durante el procesamiento
+  if(ifcompact) {
+    # Listado de variables disponibles
+    vars <- c("n","mun","loc", "snt", "vld", "num")
+    if(alcance0$tsnt)
+      vars <- c(vars, "tsnt")
+    if(alcance0$tvld)
+      vars <- c(vars, "tvld")
+    if(alcance0$int)
+      vars <- c(vars, "int")
+    if(alcance0$ref1)
+      vars <- c(vars, "ref1")
+    if(alcance0$ref2)
+      vars <- c(vars, "ref2")
+    if(alcance0$CP)
+      vars <- c(vars, "CP")
+    
+    matricula <- matricula[,vars]
+  }
+  # Quita los renglones vacíos, basado en el campo municipio
+  matricula <- matricula[which(!is.na(matricula$mun)),]
+  matricula$mun <- limpieza(matricula$mun)
+  matricula <- matricula[which(matricula$mun != ""),]
   
+  # Remplaza los resultados NA por cadena vacía
+  # Simplifica el código al no tener que hacer doble verificación
+  matricula[is.na(matricula)] <- ""
+  
+  # Ordena por municipio y localidad para optimizar el cache inicial
+  if(iforder) {
+    matricula <- matricula[with(matricula, order(mun, loc)),]
+  }
+  return(matricula) 
+}
+
+#-------------------------------------------------------------------
+# Ejecuta el procedimiento sobre el archivo de direcciones y lo
+# guarda en un archivo separado. Incluye seguimiento del proceso.
+# En este caso siempre se procesa en paralelo.
+main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = TRUE) {
+  # Almacena el Process ID
+  if(seguimiento) pid.ldom.php(id, Sys.getpid())
+
+  # Oculta los mensajes de alertas, habilitar para depuración
+  assign("last.warning", NULL, envir = baseenv())
+  options(show.error.messages = FALSE)
+  map.is.visible <<- FALSE
+
+  # Lee el archivo base de trabajo y lo estandariza
+  padron <- lee(path, sheet, iforder = FALSE, ifcompact = FALSE)
+
+  # Guarda padron
+  require(feather)
+  feather::write_feather(as.data.frame(padron), paste0(path, ".dat"))
+
   # Listado de variables disponibles
   vars <- c("n","mun","loc", "snt", "vld", "num")
   if(alcance0$tsnt)
@@ -998,49 +1080,30 @@ lee <- function(path, sheet = 1, iforder = TRUE, ifcompact = TRUE) {
   
   # Construye una base basado en las columnas con las que se cuentan
   # minimiza la carga de memoria durante el procesamiento
-  if(ifcompact)
-    matricula <- matricula[,vars]
-  
-  # Quita los renglones vacíos, basado en el campo municipio
-  matricula <- matricula[which(!is.na(matricula$mun)),]
-  matricula$mun <- limpieza(matricula$mun)
-  matricula <- matricula[which(matricula$mun != ""),]
-  
-  # Remplaza los resultados NA por cadena vacía
-  # Simplifica el código al no tener que hacer doble verificación
-  matricula[is.na(matricula)] <- ""
-  
-  # Ordena por municipio y localidad para optimizar el cache inicial
-  if(iforder)
-    matricula <- matricula[with(matricula, order(mun, loc, snt)),]
+  matricula <- padron[,vars]
+  rm(vars)
 
-  return(matricula) 
-}
+  # Reserva la memoria
+  rm(padron)
 
-#-------------------------------------------------------------------
-# Ejecuta el procedimiento sobre el archivo de direcciones y lo
-# guarda en un archivo separado. Incluye seguimiento del proceso.
-# En este caso siempre se procesa en paralelo.
-main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = TRUE) {
-  # Almacena el Process ID
-  if(seguimiento) pid.ldom.php(id, Sys.getpid())
-
-  # Oculta los mensajes de alertas, habilitar para depuración
-  assign("last.warning", NULL, envir = baseenv())
-  options(show.error.messages = FALSE)
-  map.is.visible <<- FALSE
-
-  # Procesamiento por lote
-  matricula <- lee(path, sheet)
-
-  # Procesamiento en paralelo y secuencial
+  # Procesamiento por lote en paralelo y secuencial
   require(plyr)
-  if(paralelo) {
+  require(parallel)
+  ndC <- detectCores()
+  if(paralelo && length(matricula$n) > ndC) {
+    # Ordena por municipio y localidad para optimizar el cache inicial
+    matricula <- matricula[with(matricula, order(mun, loc)),]
+    
     require(doParallel)
-    registerDoParallel(cores = (detectCores() - 1)) # Mínimo 2 procesadores
+    registerDoParallel(cores = max(ndC - 1, 1)) # Recomendado mínimo 2 procesadores
+    options(sd_num_thread = 1) # Evita conflicto con el uso de procesadores
+  } else {
+    options(sd_num_thread = ndC)
+    paralelo <- FALSE
   }
+  rm(ndC)
 
-  res <- ldply(1:length(matricula$mun), function(n) {
+  res <- ldply(1:length(matricula$n), function(n) {
     # Procesa la dirección y obtiene la coordenada geográfica probable
     c <- try(atomizar(podar(identifica(matricula[n,]))), silent = TRUE)
     if(class(c) == "try-error") {
@@ -1052,14 +1115,28 @@ main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = 
     c$n <-matricula[n,]$n
     return(c)
   }, .parallel = paralelo, .progress = "time")
+  
+  # Limpieza
+  rm(matricula)
+  
+  # Cambia el campo 'nombre' por 'ntd', para no interferir con otro
+  colnames(res)[4] <- "ntd"  
+
+  # Carda padron
+  padron <- read_feather(paste0(path, ".dat"))
 
   # Guarda en el sentido en el que fue generado (orden lógico)
   # Intercambia el orden de las columnas
-  require(openxlsx)
-  openxlsx::write.xlsx(merge(lee(path, sheet, iforder = FALSE, ifcompact = FALSE), res[c(7, 1:6)], by = "n"), file)
+  padron <- merge(padron, res[c(7, 1:6)], by = "n")
+
+  #require(openxlsx)
+  #openxlsx::write.xlsx(padron, file)
+  write_feather(as.data.frame(padron), paste0(file, ".dat"))
 
   # Desprotege el archivo de solo lectura
-  
+  rm(padron)
+  system(paste0( "rm -f ", path, ".dat"))
+
   # Reporta que se concluyó el froceso
   if(seguimiento) fin.ldom.php(id)
 

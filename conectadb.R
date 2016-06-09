@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # Copyright (c) 2016 Mario Hernández Morales
-# 
+#
 library(RODBC) # Para realizar las conexiones con PostgreSQL
 
 #Municipio 
@@ -15,21 +15,21 @@ mun.php <- function() {
 #Localidad
 loc.php <- function(m = "015") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_loc AS cve, nom_loc AS nombre, lat, lon FROM cat_localidad WHERE cve_mun = '", m,"';", sep = "") )
+  d <- sqlQuery(dbconn, paste0("SELECT cve_loc AS cve, nom_loc AS nombre, lat, lon FROM cat_localidad WHERE cve_mun = '", m,"';") )
   odbcClose(dbconn)
   d
 }
 
 loc2.php <- function(m = "015") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_loc AS cve, nom_loc AS nombre, lat, lon FROM cat_localidad WHERE dnom AND cve_mun = '", m,"';", sep = "") )
+  d <- sqlQuery(dbconn, paste0("SELECT cve_loc AS cve, nom_loc AS nombre, lat, lon FROM cat_localidad WHERE dnom AND cve_mun = '", m,"';") )
   odbcClose(dbconn)
   d
 }
 
 loc3.php <- function(m = "015") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_loc AS cve, nom_loc AS nombre, lat, lon FROM cat_localidad WHERE cnom AND cve_mun = '", m,"';", sep = "") )
+  d <- sqlQuery(dbconn, paste0("SELECT cve_loc AS cve, nom_loc AS nombre, lat, lon FROM cat_localidad WHERE cnom AND cve_mun = '", m,"';") )
   odbcClose(dbconn)
   d
 }
@@ -38,10 +38,10 @@ loc3.php <- function(m = "015") {
 #Incorpora el tipo de asentamiento
 col.php <- function(m = "015", l = "0001") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_asen, nombre || ' ' || nom_asen as nom_asen, nom_asen as nom_asen0 FROM colonia as a, cat_tipo_asen as c WHERE ",
+  d <- sqlQuery(dbconn, paste0("SELECT cve_asen, nombre || ' ' || nom_asen as nom_asen, nom_asen as nom_asen0 FROM colonia as a, cat_tipo_asen as c WHERE ",
     "(cve_mun = '", m, "') AND (",
     "(cve_mun_u = '", m, "' AND cve_loc_u = '", l, "')",
-    " OR (cve_mun_r = '", m, "' AND cve_loc_r = '", l, "' AND distancia < 1000)) AND a.cve_tipo_asen = c.cve_tipo_asen;", sep = ""))
+    " OR (cve_mun_r = '", m, "' AND cve_loc_r = '", l, "' AND distancia < 1000)) AND a.cve_tipo_asen = c.cve_tipo_asen;"))
   odbcClose(dbconn)
   d0 <- d[c(1, 3)]
   colnames(d0)[2] <- "nom_asen"
@@ -52,7 +52,7 @@ col.php <- function(m = "015", l = "0001") {
 #Incorpora el tipo de vialdad
 cal.php <- function(m = "015", l = "0001") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_via, descripcion || ' ' || nom_via as nom_via, nom_via as nom_via0 FROM vialidad as v, cat_vialidad as c WHERE cve_mun = '", m, "' AND cve_loc = '", l, "' AND es_llave AND v.cve_tipo_vial = c.cve_tipo_vial ORDER BY nom_via;", sep = "") )
+  d <- sqlQuery(dbconn, paste0("SELECT cve_via, descripcion || ' ' || nom_via as nom_via, nom_via as nom_via0 FROM vialidad as v, cat_vialidad as c WHERE cve_mun = '", m, "' AND cve_loc = '", l, "' AND es_llave AND v.cve_tipo_vial = c.cve_tipo_vial ORDER BY nom_via;"))
   odbcClose(dbconn)
   d0 <- d[c(1, 3)]
   colnames(d0)[2] <- "nom_via"
@@ -61,7 +61,7 @@ cal.php <- function(m = "015", l = "0001") {
 
 cal2.php <- function(m = "015", l = "0001") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT cve_via, descripcion || ' ' || nom_via as nom_via, nom_via as nom_via0, lat, lon FROM vialidad as v, cat_vialidad as c WHERE cve_mun = '", m, "' AND cve_loc = '", l, "' AND es_llave AND v.cve_tipo_vial = c.cve_tipo_vial ORDER BY nom_via;", sep = "") )
+  d <- sqlQuery(dbconn, paste0("SELECT cve_via, descripcion || ' ' || nom_via as nom_via, nom_via as nom_via0, lat, lon FROM vialidad as v, cat_vialidad as c WHERE cve_mun = '", m, "' AND cve_loc = '", l, "' AND es_llave AND v.cve_tipo_vial = c.cve_tipo_vial ORDER BY nom_via;"))
   odbcClose(dbconn)
   d
 }
@@ -71,11 +71,11 @@ cal2.php <- function(m = "015", l = "0001") {
 #Se corrige, intercamniando las claves por la clave única.
 num.php <- function(c = "27000101583") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste(
+  d <- sqlQuery(dbconn, paste0(
     "(SELECT lat, lon, num FROM geocode1 WHERE cve_via IN ",
     "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, ")) UNION ",
     "(SELECT lat, lon, num FROM geocode0 WHERE cve_via IN ",
-    "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, "));", sep = ""))
+    "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, "));"))
   odbcClose(dbconn)
   d
 }
@@ -84,10 +84,10 @@ num.php <- function(c = "27000101583") {
 #Combina nombres similares y con el tipo de vialidad
 ecal.php <- function(c = "015000100024") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT v.via_unica AS cve, descripcion || ' ' || nom_via as nom_via, v.nom_via as nom_via0 FROM vialidad as v, cat_vialidad as c WHERE v.cve_via IN ",
+  d <- sqlQuery(dbconn, paste0("SELECT v.via_unica AS cve, descripcion || ' ' || nom_via as nom_via, v.nom_via as nom_via0 FROM vialidad as v, cat_vialidad as c WHERE v.cve_via IN ",
     "(SELECT cve_via  FROM interseccion WHERE (cve_via0 IN (SELECT cve_via FROM vialidad WHERE via_unica = ", c, ")) UNION ",
     " SELECT cve_via0 FROM interseccion WHERE (cve_via  IN (SELECT cve_via FROM vialidad WHERE via_unica = ", c, "))) ",
-    "AND v.cve_tipo_vial = c.cve_tipo_vial GROUP BY cve, descripcion, nom_via ORDER BY cve ASC;", sep = ""))
+    "AND v.cve_tipo_vial = c.cve_tipo_vial GROUP BY cve, descripcion, nom_via ORDER BY cve ASC;"))
   odbcClose(dbconn)
   d0 <- d[c(1, 3)]
   colnames(d0)[2] <- "nom_via"
@@ -103,17 +103,27 @@ ecal.php <- function(c = "015000100024") {
 # Útil solo para las coordenadas del municipio
 gloc.php <- function(m = "015", l = "0001") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste("SELECT lat, lon FROM cat_localidad WHERE cve_mun = '", m, "' AND cve_loc = '", l, "';", sep = ""))
+  d <- sqlQuery(dbconn, paste0("SELECT lat, lon FROM cat_localidad WHERE cve_mun = '", m, "' AND cve_loc = '", l, "';"))
   odbcClose(dbconn)
   d
+}
+
+# Proporciona el nombre de la localidad con la clave de Inegi
+nloc.php <- function(m = "015", l = "0001") {
+  dbconn <- odbcConnect("local")
+  d <- sqlQuery(dbconn, paste0("SELECT nom_loc AS nombre FROM cat_localidad WHERE cve_mun = '", m, "' AND cve_loc = '", l, "';"))
+  odbcClose(dbconn)
+  if(length(d$nombre) == 0)
+    return("")
+  return(as.character(d$nombre))
 }
 
 # Proporciona las coordenadas del centroide interno de la colonia
 # incluye el radio máximo al contorno.
 gcol.php <- function(c = "0780") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste(
-    "SELECT lat, lon, radio FROM colonia WHERE cve_asen = '", c, "' ;", sep = ""))
+  d <- sqlQuery(dbconn, paste0(
+    "SELECT lat, lon, radio FROM colonia WHERE cve_asen = '", c, "' ;"))
   odbcClose(dbconn)
   d
 }
@@ -121,8 +131,8 @@ gcol.php <- function(c = "0780") {
 # Proporciona la calle
 gcal.php <- function(c = 15006700440) {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste(
-    "SELECT lat, lon FROM vialidad WHERE cve_via = ", c, " ;", sep = ""))
+  d <- sqlQuery(dbconn, paste0(
+    "SELECT lat, lon FROM vialidad WHERE cve_via = ", c, " ;"))
   odbcClose(dbconn)
   d
 }
@@ -130,11 +140,11 @@ gcal.php <- function(c = 15006700440) {
 # Direcciones almacenadas
 gn.php <- function(c = "27000101583", n = "1") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste(
+  d <- sqlQuery(dbconn, paste0(
     "(SELECT lat, lon FROM geocode1 WHERE cve_via IN ",
     "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, ") AND num LIKE '", n, "') UNION ",
     "(SELECT lat, lon FROM geocode0 WHERE cve_via IN ",
-    "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, ") AND num LIKE '", n, "');", sep = ""))
+    "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, ") AND num LIKE '", n, "');"))
   odbcClose(dbconn)
   d
 }
@@ -142,13 +152,13 @@ gn.php <- function(c = "27000101583", n = "1") {
 # Proporciona una entrecalle
 gecal.php <- function(c = 15006700440, e = 15006700441) {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste(
+  d <- sqlQuery(dbconn, paste0(
     "SELECT lat, lon FROM interseccion WHERE ",
     "((cve_via  IN (SELECT cve_via FROM vialidad WHERE via_unica = '",c,"')) ",
     "AND (cve_via0 IN (SELECT cve_via FROM vialidad WHERE via_unica = '",e,"'))) OR ",
     "((cve_via  IN (SELECT cve_via FROM vialidad WHERE via_unica = '",e,"')) ",
     "AND (cve_via0 IN (SELECT cve_via FROM vialidad WHERE via_unica = '",c,"'))) ",
-    "ORDER BY lat DESC LIMIT 1;", sep = ""))
+    "ORDER BY lat DESC LIMIT 1;"))
   odbcClose(dbconn)
   d
 }
@@ -205,17 +215,17 @@ conurbacion <- function(r_loc.cve_loc = "0150001") {
   l = substr(r_loc.cve_loc, 4, 7)
 
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste(
+  d <- sqlQuery(dbconn, paste0(
     "SELECT cat_localidad.cve_mun AS m, cat_localidad.cve_loc AS l, cat_municipio.nom_mun, cat_localidad.nom_loc, cat_localidad.lat, cat_localidad.lon ",
     "FROM cat_localidad, cat_municipio WHERE cat_localidad.cve_mun = cat_municipio.cve_mun AND sun ",
     "IN(SELECT sun FROM cat_localidad WHERE cat_localidad.cve_mun = '", m,"' AND cat_localidad.cve_loc = '", l,"') AND ",
     "NOT(cat_localidad.cve_mun = '", m,"' AND cat_localidad.cve_loc = '", l,"') ",
-    "ORDER BY nom_loc;", sep = "") )
+    "ORDER BY nom_loc;"))
   odbcClose(dbconn)
   if(length(d$l) > 0) {
     d$m <- mapply(str_pad, d$m, 3, pad = "0")
     d$l <- mapply(str_pad, d$l, 4, pad = "0")
-    d$l <- paste (d$m, d$l, sep = "")
+    d$l <- paste0(d$m, d$l)
     colnames(d)[2] <- "cve"
     colnames(d)[3] <- "nombre"
     d$niv <- 4
@@ -265,6 +275,13 @@ lee.ldom.php <- function() {
 remove.ldom.php <- function(id) {
   dbconn <- odbcConnect("local")
   sqlQuery(dbconn, paste("DELETE FROM ldom WHERE id = ",id,";",sep=""))
+  odbcClose(dbconn)
+}
+
+# Reinicia la numeración del registro
+restart.ldom.php <- function(id) {
+  dbconn <- odbcConnect("local")
+  sqlQuery(dbconn, "ALTER SEQUENCE public.ldom_id_seq RESTART WITH 1;")
   odbcClose(dbconn)
 }
 
