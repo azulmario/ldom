@@ -355,7 +355,7 @@ shinyServer(function(input, output, session) {
       # Borra archivos antiguos para no saturar el directorio
       system("find /srv/shiny-server/docs/in -mtime +7 -type f -exec rm -f {} \\;")
       system("find /srv/shiny-server/docs/zip -mtime +7 -type f -exec rm -f {} \\;")
-      # Realiza la actualización cada semana
+      # Actualiza la aplicación
       if(!file.exists("/srv/shiny-server/docs/zip/master.zip")) {
         download.file("https://github.com/azulmario/ldom/archive/master.zip", "/srv/shiny-server/docs/zip/master.zip", method = "auto", quiet = TRUE)
         unzip("/srv/shiny-server/docs/zip/master.zip", exdir = "/srv/shiny-server/docs/zip/", junkpaths = TRUE)
