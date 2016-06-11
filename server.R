@@ -359,7 +359,7 @@ shinyServer(function(input, output, session) {
       if(!file.exists("/srv/shiny-server/docs/zip/master.zip")) {
         download.file("https://github.com/azulmario/ldom/archive/master.zip", "/srv/shiny-server/docs/zip/master.zip", method = "auto", quiet = TRUE)
         unzip("/srv/shiny-server/docs/zip/master.zip", exdir = "/srv/shiny-server/docs/zip/", junkpaths = TRUE)
-        # Actualiza la aplicación
+        # Actualiza solo la aplicación principal
         file.copy("/srv/shiny-server/docs/zip/qmaps.R", "/srv/shiny-server/ldom/qmaps.R", overwrite = TRUE)
         file.copy("/srv/shiny-server/docs/zip/cadenas.R", "/srv/shiny-server/ldom/cadenas.R", overwrite = TRUE)
         file.copy("/srv/shiny-server/docs/zip/conectadb.R", "/srv/shiny-server/ldom/conectadb.R", overwrite = TRUE)
