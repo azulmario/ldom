@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # Copyright (c) 2016 Mario Hernández Morales
-# 
+#    @error: SET_STRING_ELT() can only be applied to a 'character vector', not a 'raw'
 library(shiny)
 library(shinyBS)
 library(leaflet)
@@ -18,8 +18,8 @@ shinyServer(function(input, output, session) {
   jj <- "" # Nombre del archivo subido
   ll <- 0 # Número de elementos de pestaña seleccionada
   tamc <- 0 # Número de lotes de bitácora (entero)
-  tame <- 0 # Numero de elemetos del lote procesado (entero)
-  tam0 <- 0 # Numero de elemetos ya procesados del lote (entero menor tame)
+  tame <- 0 # Número de elementos del lote procesado (entero)
+  tam0 <- 0 # Número de elementos ya procesados del lote (entero menor)
   tamp <- FALSE # Indica si se está ejecutando un lote (boleano), pero sin la intervención de otras funciones
   tamZ <- TRUE # Asegura que se imprima la bitácora vacía
   progress <- NULL
@@ -258,7 +258,7 @@ shinyServer(function(input, output, session) {
 
   # Visualiza en mapa
   output$mymap <- renderLeaflet({
-    s <- input$ldom_rows_selected
+    s <- input$ldom_rows_selected 
     if (length(s)) {
       require(feather)
       res <- read_feather(paste0(as.character(lee.ldom.php()[s[1],]$file_out), ".dat"))
@@ -349,10 +349,23 @@ shinyServer(function(input, output, session) {
 
   session$onSessionEnded(function() {
     isolate(vals$count <- vals$count - 1)
-    #Borra archivos antiguos para no saturar el directorio
     ldom <- lee.ldom.php()
-    if (get(isolate(vals$count)) == 0 && (nrow(ldom) == 0 || is.na(ldom[1,]$time_end))) {
+    # Si no hay aplicaciones abiertas y ninguna tarea está en proceso
+    if(isolate(vals$count) == 0 && (nrow(ldom) == 0 || is.na(ldom[1,]$time_end))) {
+      # Borra archivos antiguos para no saturar el directorio
       system("find /srv/shiny-server/docs/in -mtime +7 -type f -exec rm -f {} \\;")
+      # Actualiza la aplicación
+      if(!file.exists("/srv/shiny-server/docs/zip/master.zip")) {
+        download.file("https://github.com/azulmario/ldom/archive/master.zip", "/srv/shiny-server/docs/zip/master.zip", method = "auto", quiet = TRUE)
+        unzip("/srv/shiny-server/docs/zip/master.zip", exdir = "/srv/shiny-server/docs/zip/", junkpaths = TRUE)
+
+        file.copy("/srv/shiny-server/docs/zip/qmaps.R", "/srv/shiny-server/ldom/qmaps.R")
+        file.copy("/srv/shiny-server/docs/zip/cadenas.R", "/srv/shiny-server/ldom/cadenas.R")
+        file.copy("/srv/shiny-server/docs/zip/conectadb.R", "/srv/shiny-server/ldom/conectadb.R")
+        file.copy("/srv/shiny-server/docs/zip/server.R", "/srv/shiny-server/ldom/server.R")
+        file.copy("/srv/shiny-server/docs/zip/ui.R", "/srv/shiny-server/ldom/ui.R")
+      }
+      system("find /srv/shiny-server/docs/zip -mtime +14 -type f -exec rm -f {} \\;")
     }
   })
 
