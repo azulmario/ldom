@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # Copyright (c) 2015-2016 Mario Hernández Morales
-# 
+#
 # Librería que implementa la búsqueda inteligente de
 # domicilios geográficos mediante árbol de decisión.
 
@@ -1129,15 +1129,13 @@ main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = 
   # Intercambia el orden de las columnas
   padron <- merge(padron, res[c(7, 1:6)], by = "n")
 
-  #require(openxlsx)
-  #openxlsx::write.xlsx(padron, file)
   write_feather(as.data.frame(padron), paste0(file, ".dat"))
 
   # Desprotege el archivo de solo lectura
   rm(padron)
   system(paste0( "rm -f ", path, ".dat"))
 
-  # Reporta que se concluyó el froceso
+  # Reporta que se concluyó el proceso
   if(seguimiento) fin.ldom.php(id)
 
   #warnings()
