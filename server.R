@@ -354,6 +354,7 @@ shinyServer(function(input, output, session) {
     if(isolate(vals$count) == 0 && (nrow(ldom) == 0 || is.na(ldom[1,]$time_end))) {
       # Borra archivos antiguos para no saturar el directorio
       system("find /srv/shiny-server/docs/in -mtime +7 -type f -exec rm -f {} \\;")
+      system("find /srv/shiny-server/docs/zip -mtime +7 -type f -exec rm -f {} \\;")
       # Actualiza la aplicación
       if(!file.exists("/srv/shiny-server/docs/zip/master.zip")) {
         download.file("https://github.com/azulmario/ldom/archive/master.zip", "/srv/shiny-server/docs/zip/master.zip", method = "auto", quiet = TRUE)
@@ -365,7 +366,6 @@ shinyServer(function(input, output, session) {
         file.copy("/srv/shiny-server/docs/zip/server.R", "/srv/shiny-server/ldom/server.R")
         file.copy("/srv/shiny-server/docs/zip/ui.R", "/srv/shiny-server/ldom/ui.R")
       }
-      system("find /srv/shiny-server/docs/zip -mtime +14 -type f -exec rm -f {} \\;")
     }
   })
 
