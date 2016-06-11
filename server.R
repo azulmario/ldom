@@ -351,7 +351,7 @@ shinyServer(function(input, output, session) {
     isolate(vals$count <- vals$count - 1)
     ldom <- lee.ldom.php()
     # Si no hay aplicaciones abiertas y ninguna tarea está en proceso
-    if(isolate(vals$count) == 0 && (nrow(ldom) == 0 || is.na(ldom[1,]$time_end))) {
+    if(isolate(vals$count) == 0 && (nrow(ldom) == 0 || !is.na(ldom[1,]$time_end))) {
       # Borra archivos antiguos para no saturar el directorio
       system("find /srv/shiny-server/docs/in -mtime +7 -type f -exec rm -f {} \\;")
       system("find /srv/shiny-server/docs/zip -mtime +7 -type f -exec rm -f {} \\;")
