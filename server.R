@@ -354,18 +354,18 @@ shinyServer(function(input, output, session) {
     if(isolate(vals$count) == 0 && (nrow(ldom) == 0 || is.na(ldom[1,]$time_end))) {
       # Borra archivos antiguos para no saturar el directorio
       system("find /srv/shiny-server/docs/in -mtime +7 -type f -exec rm -f {} \\;")
-      # Actualiza la aplicación
+      system("find /srv/shiny-server/docs/zip -mtime +7 -type f -exec rm -f {} \\;")
+      # Realiza la actualización cada semana
       if(!file.exists("/srv/shiny-server/docs/zip/master.zip")) {
         download.file("https://github.com/azulmario/ldom/archive/master.zip", "/srv/shiny-server/docs/zip/master.zip", method = "auto", quiet = TRUE)
         unzip("/srv/shiny-server/docs/zip/master.zip", exdir = "/srv/shiny-server/docs/zip/", junkpaths = TRUE)
-
-        file.copy("/srv/shiny-server/docs/zip/qmaps.R", "/srv/shiny-server/ldom/qmaps.R")
-        file.copy("/srv/shiny-server/docs/zip/cadenas.R", "/srv/shiny-server/ldom/cadenas.R")
-        file.copy("/srv/shiny-server/docs/zip/conectadb.R", "/srv/shiny-server/ldom/conectadb.R")
-        file.copy("/srv/shiny-server/docs/zip/server.R", "/srv/shiny-server/ldom/server.R")
-        file.copy("/srv/shiny-server/docs/zip/ui.R", "/srv/shiny-server/ldom/ui.R")
+        # Actualiza la aplicación
+        file.copy("/srv/shiny-server/docs/zip/qmaps.R", "/srv/shiny-server/ldom/qmaps.R", overwrite = TRUE)
+        file.copy("/srv/shiny-server/docs/zip/cadenas.R", "/srv/shiny-server/ldom/cadenas.R", overwrite = TRUE)
+        file.copy("/srv/shiny-server/docs/zip/conectadb.R", "/srv/shiny-server/ldom/conectadb.R", overwrite = TRUE)
+        file.copy("/srv/shiny-server/docs/zip/server.R", "/srv/shiny-server/ldom/server.R", overwrite = TRUE)
+        file.copy("/srv/shiny-server/docs/zip/ui.R", "/srv/shiny-server/ldom/ui.R", overwrite = TRUE)
       }
-      system("find /srv/shiny-server/docs/zip -mtime +14 -type f -exec rm -f {} \\;")
     }
   })
 
