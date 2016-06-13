@@ -953,7 +953,7 @@ atomizar <- function (Ts, map = FALSE) {
 # Lee el archivo de trabajo y realiza la normalización de los datos
 lee <- function(path, sheet = 1, iforder = TRUE, ifcompact = TRUE) {
   require(readxl)
-  matricula <- readxl::read_excel(path, sheet)
+  matricula <- readxl::read_excel(path, sheet) #@warning: No lee documentos de libreoffice
   
   # Normaliza la tabla para que contenga los campos requeridos
   alcance0 <<- list(mun = "mun" %in% colnames(matricula), loc = "loc" %in% colnames(matricula),
@@ -1061,7 +1061,7 @@ main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = 
 
   # Guarda padron
   require(feather)
-  feather::write_feather(as.data.frame(padron), paste0(path, ".dat"))
+  write_feather(as.data.frame(padron), paste0(path, ".dat"))
 
   # Listado de variables disponibles
   vars <- c("n","mun","loc", "snt", "vld", "num")
@@ -1123,8 +1123,9 @@ main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = 
   colnames(res)[4] <- "ntd"  
 
   # Carda padron
-  padron <- read_feather(paste0(path, ".dat"))
-
+  padron <- NULL
+  while (is.null(padron)) try(padron <- read_feather(paste0(path, ".dat")), TRUE)
+  
   # Guarda en el sentido en el que fue generado (orden lógico)
   # Intercambia el orden de las columnas
   padron <- merge(padron, res[c(7, 1:6)], by = "n")

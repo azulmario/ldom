@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # Copyright (c) 2016 Mario Hernández Morales
-#    @error: SET_STRING_ELT() can only be applied to a 'character vector', not a 'raw'
+#
 library(shiny)
 library(shinyBS)
 library(leaflet)
@@ -8,6 +8,7 @@ library(DT)
 library(xtable)
 library(utils)
 library(tools)
+library(feather)
 source("qmaps.R")
 
 vals <- reactiveValues(count=0)
@@ -190,16 +191,16 @@ shinyServer(function(input, output, session) {
   output$downloadData1 <- downloadHandler(
     filename = function() {
       s <- input$ldom_rows_selected
-      if (length(s)) {
-        return(paste0(str_sub(lee.ldom.php()[s[1],]$file_out, start = 28, end=47), '.csv'))
+      if (is.integer(s)) {
+        return(paste0(str_sub(lee.ldom.php()[s,]$file_out, start = 28, end=47), '.csv'))
       }
       'error'
     },
     content = function(file) {
       s <- input$ldom_rows_selected
-      if (length(s)) {
-        require(feather)
-        res <- read_feather(paste0(as.character(lee.ldom.php()[s[1],]$file_out), ".dat"))
+      if (is.integer(s)) {
+        res <- NULL
+        while (is.null(res)) try(res <- read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
         write.csv(res, file, row.names = FALSE)
       }
     }
@@ -209,21 +210,21 @@ shinyServer(function(input, output, session) {
   output$downloadData2 <- downloadHandler(
     filename = function() {
       s <- input$ldom_rows_selected
-      if (length(s)) {
-        return(paste0(str_sub(lee.ldom.php()[s[1],]$file_out, start = 28, end=47), '.xlsx'))
+      if (is.integer(s)) {
+        return(paste0(str_sub(lee.ldom.php()[s,]$file_out, start = 28, end=47), '.xlsx'))
       }
       'error'
     },
     content = function(file) {
       s <- input$ldom_rows_selected
-      if (length(s)) {
-        if(!file.exists(as.character(lee.ldom.php()[s[1],]$file_out))) {
-          require(feather)
-          res <- read_feather(paste0(as.character(lee.ldom.php()[s[1],]$file_out), ".dat"))
+      if (is.integer(s)) {
+        if(!file.exists(as.character(lee.ldom.php()[s,]$file_out))) {
+          res <- NULL
+          while (is.null(res)) try(res <- read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
           require(openxlsx)
-          openxlsx::write.xlsx(res, as.character(lee.ldom.php()[s[1],]$file_out))
+          openxlsx::write.xlsx(res, as.character(lee.ldom.php()[s,]$file_out))
         }
-        file.copy(as.character(lee.ldom.php()[s[1],]$file_out), file)
+        file.copy(as.character(lee.ldom.php()[s,]$file_out), file)
       }
     }
   )
@@ -232,17 +233,17 @@ shinyServer(function(input, output, session) {
   output$downloadData3 <- downloadHandler(
     filename = function() {
       s <- input$ldom_rows_selected
-      if (length(s)) {
-        return(paste0(str_sub(lee.ldom.php()[s[1],]$file_out, start = 28, end=47), '.zip'))
+      if (is.integer(s)) {
+        return(paste0(str_sub(lee.ldom.php()[s,]$file_out, start = 28, end=47), '.zip'))
       }
       'error'
     },
     content = function(file) {
       s <- input$ldom_rows_selected
-      if (length(s)) {
-        ffi <- as.character(lee.ldom.php()[s[1],]$file_out)
-        require(feather)
-        res <- read_feather(paste0(ffi, ".dat"))
+      if (is.integer(s)) {
+        ffi <- as.character(lee.ldom.php()[s,]$file_out)
+        res <- NULL
+        while (is.null(res)) try(res <- read_feather(paste0(ffi, ".dat")), TRUE)
         res <- as.data.frame(res[which(res$lon != 0),])
         require(sp)
         coordinates(res)<-~lon+lat
@@ -258,12 +259,12 @@ shinyServer(function(input, output, session) {
 
   # Visualiza en mapa
   output$mymap <- renderLeaflet({
-    s <- input$ldom_rows_selected 
-    if (length(s)) {
-      require(feather)
-      res <- read_feather(paste0(as.character(lee.ldom.php()[s[1],]$file_out), ".dat"))
+    s <- input$ldom_rows_selected
+    if (is.integer(s)) {
+      res <- NULL
+      while (is.null(res)) try(res <- read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
       res <- res[which(res$lon != 0),]
-      if (length(res$lon) > 0) {
+      if (nrow(res) > 0) {
         leaflet() %>%
           addProviderTiles("Esri.WorldStreetMap",
             options = providerTileOptions(noWrap = TRUE, detectRetina = TRUE, reuseTiles = TRUE, minZoom = 8, maxZoom = 19)) %>%
@@ -282,12 +283,14 @@ shinyServer(function(input, output, session) {
   # Visualiza el rendimiento
   output$distPlot <- renderPlot({
     s <- input$ldom_rows_selected
-    if (length(s)) {
-      require(feather)
-      res <- read_feather(paste0(as.character(lee.ldom.php()[s[1],]$file_out), ".dat"))
-      if (length(res$n) > 0) {
+    if (is.integer(s)) {
+      res <- NULL # @error en read_feather: SET_STRING_ELT() can only be applied to a 'character vector', not a 'raw'
+      while (is.null(res)) try(res <- read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
+      if (nrow(res) > 0) {
         res$Nivel <- factor(res$niv, levels = c(0, 1, 2, 3, 4, -1, -2), labels = c("Número exterior", "Entrecalle", "Calle", "Colonia", "Localidad", "No localizada", "Bug"))
-        res$Direcciones <- 1.0
+        res$Direcciones <- 1
+        #res$rurb <- rbinom(length(res$n),1,.5)
+        #res$rurb <- factor(res$rurb, levels = c(0, 1), labels = c("Rural", "Urbano") )
         res$CBM <- res$BM
         res$CBM[res$BM == 0] <- "a"
         res$CBM[res$BM > 0.000 & res$BM <= 0.025] <- "b"
@@ -305,10 +308,11 @@ shinyServer(function(input, output, session) {
         if(ppd[4]) cbbPalette <- c(cbbPalette, "#339832") 
         if(ppd[5]) cbbPalette <- c(cbbPalette, "#080c9f") 
         if(ppd[6]) cbbPalette <- c(cbbPalette, "#046394")
+        
         require(ggplot2)
-        ggplot() + theme_bw()  +
-          geom_bar(aes(y = Direcciones, x = Nivel, fill = CBM), data = res, stat="identity") +
-          theme(legend.title = element_blank()) + 
+        ggplot(data = res, aes(x = Nivel, y = Direcciones, fill = CBM)) +
+          geom_bar(stat="identity") +
+          theme_bw() + theme(legend.title = element_blank()) + 
           ggtitle("Nivel y error") + labs(x="Nivel", y="Cantidad de direcciones") +
           scale_fill_manual(values = cbbPalette)
       }
@@ -325,8 +329,8 @@ shinyServer(function(input, output, session) {
   # Elimina entrada, incluye interrumpir proceso
   observeEvent(input$deleteData, {
     s <- input$ldom_rows_selected
-    if (length(s)) {
-      r <- lee.ldom.php()[s[1],]
+    if (is.integer(s)) {
+      r <- lee.ldom.php()[s,]
       if(is.na(r$time_end)) {
         system(paste0("pkill -TERM -P ", r$pid, " ; kill -s TERM ", r$pid))
         progress$close()
@@ -374,3 +378,7 @@ shinyServer(function(input, output, session) {
   })
 
 })
+
+## Instalar
+# devtools::install_github("wesm/feather/R")
+ 
