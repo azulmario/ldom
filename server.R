@@ -40,6 +40,7 @@ shinyServer(function(input, output, session) {
     jj <<- gsub("\\)", "", jj)
     system(paste('cp -f', inFile$datapath, jj))
     # Número de pestañas
+    require(readxl)
     sheets <- readxl::excel_sheets(jj)
     maksimi <- length(sheets)
     if(maksimi > 1) {
@@ -58,11 +59,14 @@ shinyServer(function(input, output, session) {
     #Leer
     matricula <- lee(jj, input$sheet, iforder = FALSE, ifcompact = TRUE)
     ll <<- nrow(matricula)
+    matr_ <- NULL
     if (ll < 7) {
-      return(xtable(matricula))
+      matr_ <- xtable(matricula)
     }
+    matr_ <- xtable(matricula[c(1:min(5,ll-1),ll),])
+    rm(matricula)
     # Regresa una versión corta para visualizar
-    xtable(matricula[c(1:min(5,ll-1),ll),])
+    return(matr_)
   },
   caption = "Vista previa de los datos:",
   caption.placement = getOption("xtable.caption.placement", "top"), 
@@ -200,7 +204,7 @@ shinyServer(function(input, output, session) {
       s <- input$ldom_rows_selected
       if (is.integer(s)) {
         res <- NULL
-        while (is.null(res)) try(res <- read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
+        while (is.null(res)) try(res <- feather::read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
         write.csv(res, file, row.names = FALSE)
       }
     }
@@ -220,7 +224,7 @@ shinyServer(function(input, output, session) {
       if (is.integer(s)) {
         if(!file.exists(as.character(lee.ldom.php()[s,]$file_out))) {
           res <- NULL
-          while (is.null(res)) try(res <- read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
+          while (is.null(res)) try(res <- feather::read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
           require(openxlsx)
           openxlsx::write.xlsx(res, as.character(lee.ldom.php()[s,]$file_out))
         }
@@ -243,7 +247,7 @@ shinyServer(function(input, output, session) {
       if (is.integer(s)) {
         ffi <- as.character(lee.ldom.php()[s,]$file_out)
         res <- NULL
-        while (is.null(res)) try(res <- read_feather(paste0(ffi, ".dat")), TRUE)
+        while (is.null(res)) try(res <- feather::read_feather(paste0(ffi, ".dat")), TRUE)
         res <- as.data.frame(res[which(res$lon != 0),])
         require(sp)
         coordinates(res)<-~lon+lat
@@ -262,7 +266,7 @@ shinyServer(function(input, output, session) {
     s <- input$ldom_rows_selected
     if (is.integer(s)) {
       res <- NULL
-      while (is.null(res)) try(res <- read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
+      while (is.null(res)) try(res <- feather::read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
       res <- res[which(res$lon != 0),]
       if (nrow(res) > 0) {
         leaflet() %>%
@@ -285,7 +289,7 @@ shinyServer(function(input, output, session) {
     s <- input$ldom_rows_selected
     if (is.integer(s)) {
       res <- NULL # @error en read_feather: SET_STRING_ELT() can only be applied to a 'character vector', not a 'raw'
-      while (is.null(res)) try(res <- read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
+      while (is.null(res)) try(res <- feather::read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
       if (nrow(res) > 0) {
         res$Nivel <- factor(res$niv, levels = c(0, 1, 2, 3, 4, -1, -2), labels = c("Número exterior", "Entrecalle", "Calle", "Colonia", "Localidad", "No localizada", "Bug"))
         res$Direcciones <- 1

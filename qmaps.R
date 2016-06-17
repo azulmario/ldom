@@ -1061,7 +1061,7 @@ main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = 
 
   # Guarda padron
   require(feather)
-  write_feather(as.data.frame(padron), paste0(path, ".dat"))
+  feather::write_feather(as.data.frame(padron), paste0(path, ".dat"))
 
   # Listado de variables disponibles
   vars <- c("n","mun","loc", "snt", "vld", "num")
@@ -1124,13 +1124,13 @@ main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = 
 
   # Carda padron
   padron <- NULL
-  while (is.null(padron)) try(padron <- read_feather(paste0(path, ".dat")), TRUE)
+  while (is.null(padron)) try(padron <- feather::read_feather(paste0(path, ".dat")), TRUE)
   
   # Guarda en el sentido en el que fue generado (orden lógico)
   # Intercambia el orden de las columnas
   padron <- merge(padron, res[c(7, 1:6)], by = "n")
 
-  write_feather(as.data.frame(padron), paste0(file, ".dat"))
+  feather::write_feather(as.data.frame(padron), paste0(file, ".dat"))
 
   # Desprotege el archivo de solo lectura
   rm(padron)
