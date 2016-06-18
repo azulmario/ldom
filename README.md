@@ -15,10 +15,3 @@ El método utilizado, ID3, plantea construir un árbol de decisión para cada di
 Si se cuenta con una gran cantidad de direcciones, resulta factible utilizar una computadora con muchos núcleos disponibles y realizar el procesamiento en paralelo para georeferenciar grandes bases de datos. Una vez obtenidas las coordenadas, se pueden realizar análisis geográficos de la información y aplicar técnicas de geo estadística.
 
 Mario Hernández Morales, 19 de abril de 2016.
-
-
-
-
-Para subir la versión a repositorio y publicador:
-> * git remote update
-> * git push origin master
