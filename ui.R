@@ -53,6 +53,7 @@ shinyUI(fluidPage(
         a(href = '../reporte', '/reporte.', target='_blank')),
       "Sesiones actualmente abiertas de esta aplicación:", 
       verbatimTextOutput("count"),
+      p('Versión 20160617'),
       textOutput("currentTime")
     ),
     mainPanel(
@@ -70,11 +71,12 @@ shinyUI(fluidPage(
       tableOutput('matricula'),
       tags$hr(),
       h3("Segundo paso"),
-      p("Cuando esté listo, presione el siguiente botón para ejecutar el procesamiento de todas las direcciones del lote definido en el paso anterior:"),
+      p("Cuando esté listo, presione el siguiente botón para ejecutar el procesamiento de todas las direcciones del lote definido en el paso anterior."),
       actionButton('goButton','Procesamiento por lote'),
       textOutput("nText"),
       tags$hr(),
       h3("Tercer paso"),
+      p("Administración de resultados. Seleccione en la siguiente lista un lote y elija el botón, más abajo, para ejecutar la acción indicada."),
       fluidRow(
         column(width = 12, DT::dataTableOutput('ldom')),
         column(width = 12, tags$hr()),
