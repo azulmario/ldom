@@ -44,26 +44,23 @@ shinyServer(function(input, output, session) {
     sheets <- readxl::excel_sheets(jj)
     maksimi <- length(sheets)
     if(maksimi > 1) {
-      output$slider <<- renderUI({
-        sliderInput("sheet", 
-                    label = p("Elija la posición de la hoja a leer:"), 
-                    value = input$sheet, min = 1, max = maksimi, step = 1)
-      })
+      vlabel <- p("Elija el nombre de la hoja a leer:")
     } else {
-      output$slider <<- renderUI({
-        numericInput("sheet", 
-                    label = p("El archivo solo contiene una hoja."), 
-                    value = input$sheet, min = 1, max = 1)
-      })
+      vlabel <-p("El archivo solo contiene una hoja:")
     }
+    output$slider <<- renderUI({
+      selectInput("sheet", vlabel, sheets, selected = input$sheet)
+    })
     #Leer
     matricula <- lee(jj, input$sheet, iforder = FALSE, ifcompact = TRUE)
+
     ll <<- nrow(matricula)
     matr_ <- NULL
     if (ll < 7) {
       matr_ <- xtable(matricula)
+    } else {
+      matr_ <- xtable(matricula[c(1:min(5,ll-1),ll),])
     }
-    matr_ <- xtable(matricula[c(1:min(5,ll-1),ll),])
     rm(matricula)
     # Regresa una versión corta para visualizar
     return(matr_)
