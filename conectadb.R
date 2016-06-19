@@ -230,7 +230,7 @@ conurbacion <- function(r_loc.cve_loc = "0150001") {
     colnames(d)[3] <- "nombre"
     d$niv <- 4
     d$BM <- 2e-7
-    d$nombre <- paste (d$nombre, d$nom_loc, sep = ", ") 
+    d$nombre <- paste(d$nombre, d$nom_loc, sep = ", ") 
     d[c(7, 8, 2, 3, 5, 6)]
   } else{
     NULL
@@ -240,27 +240,34 @@ conurbacion <- function(r_loc.cve_loc = "0150001") {
 # Rutinas para la administración de la  bitácora de procesamiento por lotes
 ldom.php <- function(file_in, sheet, file_out, size) {
   dbconn <- odbcConnect("local")
-  id <- sqlQuery(dbconn, paste("INSERT INTO ldom (id, file_in, sheet, file_out, time_start, size) VALUES (DEFAULT,'",file_in, "',", sheet,",'", file_out,"', now() AT TIME ZONE 'America/Mexico_City',",size,") RETURNING id;",sep=""))
+  id <- sqlQuery(dbconn, paste0("INSERT INTO ldom (id, file_in, sheet, file_out, time_start, size) VALUES (DEFAULT,'",file_in, "',", sheet,",'", file_out,"', now() AT TIME ZONE 'America/Mexico_City',",size,") RETURNING id;"))
   odbcClose(dbconn)
   id
+}
+
+# Actualiza el tamaño del lote
+size.ldom.php <- function(id, size) {
+  dbconn <- odbcConnect("local")
+  sqlQuery(dbconn, paste0("UPDATE ldom SET size = ", size, " WHERE id = ",id,";"))
+  odbcClose(dbconn)
 }
 
 # Da de alta en identificador del proceso
 pid.ldom.php <- function(id, pid) {
   dbconn <- odbcConnect("local")
-  sqlQuery(dbconn, paste("UPDATE ldom SET pid = ", pid, " WHERE id = ",id,";",sep=""))
+  sqlQuery(dbconn, paste0("UPDATE ldom SET pid = ", pid, " WHERE id = ",id,";"))
   odbcClose(dbconn)
 }
 
 avance.ldom.php <- function(id) {
   dbconn <- odbcConnect("local")
-  sqlQuery(dbconn, paste("UPDATE ldom SET biased = biased + 1 WHERE id = ",id,";",sep=""))
+  sqlQuery(dbconn, paste0("UPDATE ldom SET biased = biased + 1 WHERE id = ",id,";"))
   odbcClose(dbconn)
 }
 
 fin.ldom.php <- function(id) {
   dbconn <- odbcConnect("local")
-  sqlQuery(dbconn, paste("UPDATE ldom SET time_end = now() AT TIME ZONE 'America/Mexico_City', pid = NULL WHERE id = ",id,";",sep=""))
+  sqlQuery(dbconn, paste0("UPDATE ldom SET time_end = now() AT TIME ZONE 'America/Mexico_City', pid = NULL WHERE id = ",id,";"))
   odbcClose(dbconn)
 }
 
@@ -274,7 +281,7 @@ lee.ldom.php <- function() {
 # Elimina un registro
 remove.ldom.php <- function(id) {
   dbconn <- odbcConnect("local")
-  sqlQuery(dbconn, paste("DELETE FROM ldom WHERE id = ",id,";",sep=""))
+  sqlQuery(dbconn, paste0("DELETE FROM ldom WHERE id = ",id,";"))
   odbcClose(dbconn)
 }
 
