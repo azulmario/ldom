@@ -17,6 +17,7 @@ options(shiny.maxRequestSize = -1) # ¡Alerta! 25*1024^2
 shinyServer(function(input, output, session) {
   isolate(vals$count <- vals$count + 1)
   jj <- "" # Nombre del archivo subido
+  vsheets <- c() # Pestañas del archivo subido
   ll <- 0 # Número de elementos de pestaña seleccionada
   tamc <- 0 # Número de lotes de bitácora (entero)
   tame <- 0 # Número de elementos del lote procesado (entero)
@@ -41,29 +42,33 @@ shinyServer(function(input, output, session) {
     system(paste('cp -f', inFile$datapath, jj))
     # Número de pestañas
     require(readxl)
-    sheets <- readxl::excel_sheets(jj)
-    maksimi <- length(sheets)
-    if(maksimi > 1) {
+    vsheets <<- readxl::excel_sheets(jj)
+    maksimi <- length(vsheets)
+    
+    if (maksimi == 0)
+      return(NULL)
+
+    if (maksimi > 1) {
       vlabel <- p("Elija el nombre de la hoja a leer:")
     } else {
       vlabel <-p("El archivo solo contiene una hoja:")
     }
     output$slider <<- renderUI({
-      selectInput("sheet", vlabel, sheets, selected = input$sheet)
+      selectInput("sheet", vlabel, vsheets, selected = input$sheet)
     })
     #Leer
     matricula <- lee(jj, input$sheet, iforder = FALSE, ifcompact = TRUE)
 
+    if (is.null(matricula))
+      return(NULL)
+
     ll <<- nrow(matricula)
-    matr_ <- NULL
-    if (ll < 7) {
-      matr_ <- xtable(matricula)
-    } else {
-      matr_ <- xtable(matricula[c(1:min(5,ll-1),ll),])
-    }
-    rm(matricula)
+
+    if (ll == 0)
+      return(NULL)
+    
     # Regresa una versión corta para visualizar
-    return(matr_)
+    return(xtable(matricula))
   },
   caption = "Vista previa de los datos:",
   caption.placement = getOption("xtable.caption.placement", "top"), 
@@ -82,8 +87,8 @@ shinyServer(function(input, output, session) {
     }
 
     kk <- paste0('/srv/shiny-server/docs/out/r', format(Sys.time()), '.xlsx')
-    id <- ldom.php(file_in = jj, sheet = input$sheet, file_out = kk, size = ll)
-    opetus <- paste0("/usr/bin/Rscript -e \"source('/srv/shiny-server/ldom/qmaps.R'); main(path = '",jj,"', sheet = ",input$sheet,", file = '",kk,"', id = ",id,");\" --vanilla &") 
+    id <- ldom.php(file_in = jj, sheet = which(input$sheet == vsheets), file_out = kk, size = ll)
+    opetus <- paste0("/usr/bin/Rscript -e \"source('/srv/shiny-server/ldom/qmaps.R'); main(path = '",jj,"', sheet = '",input$sheet,"', file = '",kk,"', id = ",id,");\" --vanilla &") 
     system(opetus)
     paste0("¡Espere a que termine el proceso! Al finalizar, busqué en la bitácora de trabajo el número ", id, ".")
   })

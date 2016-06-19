@@ -952,9 +952,14 @@ atomizar <- function (Ts, map = FALSE) {
 #-------------------------------------------------------------------
 # Lee el archivo de trabajo y realiza la normalización de los datos
 lee <- function(path, sheet = 1, iforder = TRUE, ifcompact = TRUE) {
-  require(readxl)
-  matricula <- readxl::read_excel(path, sheet) #@warning: No lee documentos de libreoffice
-  
+  if(ifcompact) {
+    require(openxlsx)
+    matricula <- openxlsx::read.xlsx(path, sheet, rows = c(1:6))
+  } else{
+    require(readxl)
+    matricula <- readxl::read_excel(path, sheet) #@warning: No lee documentos de libreoffice
+  }
+
   # Normaliza la tabla para que contenga los campos requeridos
   alcance0 <<- list(mun = "mun" %in% colnames(matricula), loc = "loc" %in% colnames(matricula),
                     tsnt = "tsnt" %in% colnames(matricula), snt = "snt" %in% colnames(matricula), 
@@ -1086,11 +1091,14 @@ main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = 
   # Reserva la memoria
   rm(padron)
 
+  ll <- length(matricula$n)
+  if(seguimiento) size.ldom.php(id, ll)
+
   # Procesamiento por lote en paralelo y secuencial
   require(plyr)
   require(parallel)
   ndC <- detectCores()
-  if(paralelo && length(matricula$n) > ndC) {
+  if(paralelo && ll > ndC) {
     # Ordena por municipio y localidad para optimizar el cache inicial
     matricula <- matricula[with(matricula, order(mun, loc)),]
     
@@ -1103,7 +1111,7 @@ main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = 
   }
   rm(ndC)
 
-  res <- ldply(1:length(matricula$n), function(n) {
+  res <- ldply(1:ll, function(n) {
     # Procesa la dirección y obtiene la coordenada geográfica probable
     c <- try(atomizar(podar(identifica(matricula[n,]))), silent = TRUE)
     if(class(c) == "try-error") {
