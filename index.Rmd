@@ -16,7 +16,7 @@ source("qmaps.R", echo = FALSE)
 map.is.visible <<- TRUE
 ```
 ```{r}
-dom <- lee("dom.xlsx", 4)[1,]
+dom <- lee("dom.xlsx", "Ejemplo3")[1,]
 
 shiny::renderTable({
   t(dom)

@@ -4,7 +4,7 @@ Reporte completo del análisis del rendimiento ante la base proporcionada para p
 
 ## Recomendaciones generales para optimizar el funcionamiento
 
-Para un mejor aprovechamiento del sistema de "Localización automatizada de domicilios geográficos"  <139.70.84.47:3838/ldom>, se recomienda lo siguiente:
+Para un mejor aprovechamiento del sistema de "Localización automatizada de domicilios geográficos"  <localhost:13838/ldom>, se recomienda lo siguiente:
 
 - Hacer una prueba previa con pocos datos, unos 10, para verificar que se estén utilizando correctamente los campos de entrada.
 - El archivo de Excel puede contener fórmulas para construir las variables de entrada, por ejemplo: '=SI(Q9,Q9,R9)' para juntar las variables S_NUM_EXT y S_LETRA_EXT. O bien '=EXTRAEB(E2,7,100)' para acortar un texto.
@@ -153,3 +153,21 @@ qplot(ad$Error[which(ad$Nivel == "Colonia" & ad$Error > 0)], geom="histogram", b
 ## Nota técnica
 
 Para este reporte se eligieron 600 direcciones sin remplazo y en cada procesamiento se utilizó un solo procesador a 2.2 Ghz. A parte se tiene un procesador exclusivo para Postgresql e independiente.
+
+## Balance de hardware de máquina virtual (Big Data)
+
+De la experiencia resultan los siguientes parámetros de configuración basado en el número de direcciones por localizar para un mismo archivo subido. El tiempo depende del número de procesadores asignados a la máquina virtual y la memoría RAM depende de la cantidad de direcciones en un lote de trabajo. Cabe mencionar que el sistema requiere un procesador libre para el sistema y el uso del PostgreSQL, además de 1Gb de RAM.
+
+Núm de procesadores asignados (CPU) | Procesadores dedicados (CPU) | Número de direcciones por localizar | Tiempo para terminar (días) | RAM para cálculo  (Gb)| RAM mínima (Gb) | RAM recomendada (Gb)
+:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:
+ 4 |  3 |   250,000 | 5.0 | 2 | 3 |  4
+ 7 |  6 |   500,000 | 5.0 | 4 | 5 |  6
+13 | 12 | 1,000,000 | 5.0 | 8 | 9 | 10
+25 | 24 | 1,000,000 | 2.5 | 8 | 9 | 10
+30 | 29 | 1,000,000 | 2.1 | 8 | 9 | 10
+
+Considerar como referencia que para un archivo de Excel (versión 2007 y 2010) el máximo de renglones es de 1,048,576 por pestaña.
+
+En general, se recomienda para una máquina virtual asignarle el mayor número de procesadores posible de la máquina física, igualmente para la memoria RAM. Y dependiendo de la memoria RAM es el límite de la cantidad de direcciones que puede procesar un lote.
+
+La máquina de prueba utiliza 7896MiB de memoria RAM y cuenta con un procesador Intel(R) Core(TM) i5-2310 CPU @ 2.90GHz con capacidad de 3200MHz con 64 bits. A la máquina virtual se le asignaron 5Gb de RAM y 4 CPU's. Durante el procesamiento utiliza 2.5G de RAM.
