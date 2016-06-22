@@ -92,7 +92,7 @@ Como puede observarse los datos presentan una combinación de casos en los cuale
 
 La mayoría de los registros llegan a estimarse a nivel de número exterior. En general se tiene la siguiente distribución:
 ```{r}
-  summary(ad$Nivel)
+  ad$Nivel
 ```
 
 ##
@@ -158,6 +158,7 @@ Para este reporte se eligieron 600 direcciones sin remplazo y en cada procesamie
 
 De la experiencia resultan los siguientes parámetros de configuración basado en el número de direcciones por localizar para un mismo archivo subido. El tiempo depende del número de procesadores asignados a la máquina virtual y la memoría RAM depende de la cantidad de direcciones en un lote de trabajo. Cabe mencionar que el sistema requiere un procesador libre para el sistema y el uso del PostgreSQL, además de 1Gb de RAM.
 
+##
 Núm de procesadores asignados (CPU) | Procesadores dedicados (CPU) | Número de direcciones por localizar | Tiempo para terminar (días) | RAM para cálculo  (Gb)| RAM mínima (Gb) | RAM recomendada (Gb)
 :-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:
  4 |  3 |   250,000 | 5.0 | 2 | 3 |  4
@@ -168,6 +169,7 @@ Núm de procesadores asignados (CPU) | Procesadores dedicados (CPU) | Número de
 
 Considerar como referencia que para un archivo de Excel (versión 2007 y 2010) el máximo de renglones es de 1,048,576 por pestaña.
 
+##
 En general, se recomienda para una máquina virtual asignarle el mayor número de procesadores posible de la máquina física, igualmente para la memoria RAM. Y dependiendo de la memoria RAM es el límite de la cantidad de direcciones que puede procesar un lote.
 
 La máquina de prueba utiliza 7896MiB de memoria RAM y cuenta con un procesador Intel(R) Core(TM) i5-2310 CPU @ 2.90GHz con capacidad de 3200MHz con 64 bits. A la máquina virtual se le asignaron 5Gb de RAM y 4 CPU's. Durante el procesamiento utiliza 2.5G de RAM.
