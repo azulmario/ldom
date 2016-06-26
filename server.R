@@ -254,6 +254,7 @@ shinyServer(function(input, output, session) {
         require(sp)
         coordinates(res)<-~lon+lat
         proj4string(res)<-CRS("+proj=longlat +datum=WGS84 +no_defs")
+        res <- sp::spTransform(res, CRS=CRS("+init=epsg:32614"))
         require(rgdal)
         writeOGR(res, dsn=paste0('/srv/shiny-server/docs/shp/', str_sub(ffi, start = 28, end=47),'.shp'), layer="ldom", driver="ESRI Shapefile")
         zip(zipfile='/srv/shiny-server/docs/shp/fbCrawlExport.zip', files="/srv/shiny-server/docs/shp", flags = "-r9Xj")
