@@ -314,18 +314,17 @@ identifica_vld <- function(dom.vld, r_loc, r_snt = NULL, tipo = TRUE) {
     }
 
     # Hace limpieza de los candidatos de nombres
-    origen$nom_via <- limpieza(as.character(origen$nom_via))
-    origen$nom_via0 <- limpieza(as.character(origen$nom_via0))
+    origen$nom_via <- limpieza(origen$nom_via)
+    origen$nom_via0 <- limpieza(origen$nom_via0)
 
     # Calcula las distancias con cada uno de los candidatos
     origen$B <- stringdistmatrix(origen$nom_via, dom.vld, method="jw", p = 0.1)
     origen$M <- stringdistmatrix(origen$nom_via0, dom.vld, method="jw", p = 0.1)
-    r_vld <- origen[origen$B <= 0.05+min(origen$B) | origen$M <= 0.05+min(origen$M),]
-
-    #@error No funciona con  
-    #dom.vld <- "CAMPIÑA", cuando es "DE LA CAMPIÑA"
-    r_vld$B <- as.vector(stringdistmatrix(r_vld$nom_via, dom.vld, method="cosine"))
-    r_vld$M <- as.vector(stringdistmatrix(r_vld$nom_via0, dom.vld, method="cosine"))
+    origen <- origen[origen$B <= 0.1 + min(origen$B) | origen$M <= 0.1 + min(origen$M),]
+    origen$B <- stringdistmatrix(rsna(origen$nom_via), rsna(dom.vld), method="cosine")
+    origen$M <- stringdistmatrix(rsna(origen$nom_via0), rsna(dom.vld), method="cosine")
+    origen$BM <- pmin(origen$B, 0.001 + origen$M)
+    r_vld <- origen[origen$BM <= 0.1 | origen$BM <=  0.01 + min(origen$BM),]
 
     colnames(r_vld)[1] <- "cve"
     colnames(r_vld)[2] <- "nombre"
@@ -335,12 +334,12 @@ identifica_vld <- function(dom.vld, r_loc, r_snt = NULL, tipo = TRUE) {
     r_vld$niv <- 2
     
     if(tipo || is.null(r_snt)) { # @error
-      r_vld$BM <- 1.0 - (1.0 - pmin(r_vld$B, r_vld$M)) * (1.0 - r_loc$BM)
+      r_vld$BM <- 1.0 - (1.0 - r_vld$BM) * (1.0 - r_loc$BM / 2.0)
     } else {
       u_ <- r_snt$BM
       u_ <- u_[ complete.cases(u_) ]
       u_ <- max(u_)
-      r_vld$BM <- 1.0 - (1.0 - pmin(r_vld$B, r_vld$M)) * (1.0 - u_)
+      r_vld$BM <- 1.0 - (1.0 - r_vld$BM) * (1.0 - u_  / 2.0)
     }
     r_vld$nombre <- paste(r_loc$nombre, r_vld$e, r_vld$nombre, sep = ", ") # Nombre de vialidad
     r_vld$nombre <- gsub(", , ", ", ", r_vld$nombre)
