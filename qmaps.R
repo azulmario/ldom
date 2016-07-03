@@ -116,7 +116,7 @@ identifica_loc <- function(dom.loc, r_mun) {
     origen$BM <- stringdistmatrix(origen$nombre, dom.loc, method="jw", p = 0.1)
     origen <- origen[origen$BM <= 0.1 + min(origen$BM),]
     origen$BM <- stringdistmatrix(rsna(origen$nombre), rsna(dom.loc), method = "cosine")
-    r_loc <- origen[origen$BM <= 0.1 | (origen$BM <= 0.25 & origen$BM <=  0.01 + min(origen$BM)),] # Obtiene el mínimo
+    r_loc <- origen[origen$BM <= 0.1 | (origen$BM <= 0.15 & origen$BM <=  0.01 + min(origen$BM)),] # Obtiene el mínimo
 
     if(length(r_loc$BM) == 0)
       return(NULL)
@@ -230,7 +230,7 @@ identifica_snt <- function(dom.snt, r_loc) {
     origen$BM <- stringdistmatrix(origen$nom_asen, dom.snt, method="jw", p = 0.1)
     origen <- origen[origen$BM <= 0.1 + min(origen$BM),]
     origen$BM <- stringdistmatrix(rsna(origen$nom_asen), rsna(dom.snt), method = "cosine")
-    r_snt <- origen[origen$BM <= 0.1 | (origen$BM <= 0.25 & origen$BM <=  0.01 + min(origen$BM)),] # Limita los nombres no parecidos
+    r_snt <- origen[origen$BM <= 0.1 | (origen$BM <= 0.15 & origen$BM <=  0.01 + min(origen$BM)),] # Limita los nombres no parecidos
 
     if(length(r_snt$cve_asen) == 0)
       return(NULL)
@@ -321,7 +321,7 @@ identifica_vld <- function(dom.vld, r_loc, r_snt = NULL, tipo = TRUE) {
     origen$B <- stringdistmatrix(rsna(origen$nom_via), rsna(dom.vld), method="cosine")
     origen$M <- stringdistmatrix(rsna(origen$nom_via0), rsna(dom.vld), method="cosine")
     origen$BM <- pmin(origen$B, 0.001 + origen$M)
-    r_vld <- origen[origen$BM <= 0.1 | (origen$BM <= 0.25 & origen$BM <=  0.01 + min(origen$BM)),]
+    r_vld <- origen[origen$BM <= 0.1 | (origen$BM <= 0.15 & origen$BM <=  0.01 + min(origen$BM)),]
 
     if(length(r_vld$BM) == 0)
       return(NULL)
@@ -368,7 +368,7 @@ identifica_ref <- function(dom.ref, r_vld) {
     origen$BM <- stringdistmatrix(origen$nom_via, destino, method="jw", p = 0.1)
     origen <- origen[origen$BM <= 0.1 + min(origen$BM),]
     origen$BM <- stringdistmatrix(rsna(origen$nom_via), rsna(destino), method = "cosine")
-    r_ref <- origen[origen$BM <= 0.1 | (origen$BM <= 0.25 & origen$BM <=  0.01 + min(origen$BM)),]
+    r_ref <- origen[origen$BM <= 0.1 | (origen$BM <= 0.15 & origen$BM <=  0.01 + min(origen$BM)),]
 
     if(length(r_ref$cve) == 0)
       return(NULL)
@@ -406,7 +406,7 @@ identifica_num <- function (dom.num, r_vld) {
 
   if(length(origen$num) > 0) {
     origen$BM <- 2*pnorm(sqrt(2)*(abs(origen$num-dom.num)/50))-1
-    r_num <- origen[origen$BM <= 0.12 & origen$BM ==  min(origen$BM),]
+    r_num <- origen[origen$BM <= 0.15 & origen$BM ==  min(origen$BM),]
     
     if(length(r_num$BM) == 0)
       return(NULL)
