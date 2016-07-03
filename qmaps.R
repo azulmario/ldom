@@ -359,17 +359,14 @@ identifica_ref <- function(dom.ref, r_vld) {
   if(length(origen$nom_via) > 0) {
     origen$nom_via <- limpieza(as.character(origen$nom_via))
 
-    BM <- stringdistmatrix(origen$nom_via, destino, method="jw", p = 0.1)
-    BM <- cbind(BM,origen)
-    BM <- BM[with(BM, order(BM)),]
-
-    r_ref <- BM[BM[,1] <= 0.05+min(BM[,1]) & BM[,1] <= 0.5,] # Limita los nombres no parecidos
+    origen$BM <- stringdistmatrix(origen$nom_via, destino, method="jw", p = 0.1)
+    origen <- origen[origen$BM <= 0.1 + min(origen$BM),]
+    origen$BM <- stringdistmatrix(rsna(origen$nom_via), rsna(destino), method = "cosine")
+    r_ref <- origen[origen$BM <= 0.1 | (origen$BM <= 0.25 & origen$BM <=  0.01 + min(origen$BM)),]
 
     if(length(r_ref$cve) == 0)
       return(NULL)
 
-    r_ref$BM <- as.vector(stringdistmatrix(r_ref$nom_via, destino, method="cosine"))
-    
     d <- sapply(r_ref$cve, gecal.php, e = r_vld$cve) # Obtiene las coordenadas de la esquina
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
@@ -379,10 +376,10 @@ identifica_ref <- function(dom.ref, r_vld) {
       hace_mapa(r_ref, 17)
     }
     r_ref$niv <- 1
-    r_ref$BM <- 1.0 - (1.0 - r_ref$BM) * (1.0 - r_vld$BM)
+    r_ref$BM <- 1 - (1 - r_ref$BM) * (1 - r_vld$BM / 2)
     r_ref$nombre <- paste(r_vld$nombre, r_ref$nombre, sep = " Y ")
     r_ref$cve <- paste(r_vld$cve, r_ref$cve, sep = "x")
-    return(r_ref)
+    return(r_ref[,c("BM","cve","nombre","lat","lon","niv")])
   } else {
     return(NULL)
   }
