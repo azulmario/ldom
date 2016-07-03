@@ -224,14 +224,13 @@ identifica_snt <- function(dom.snt, r_loc) {
   if(length(origen$nom_asen) > 0) {
     origen$nom_asen <- limpieza(as.character(origen$nom_asen))
 
-    BM <- stringdistmatrix(origen$nom_asen, dom.snt, method="jw", p = 0.1)
-    BM <- cbind(BM,origen)
-    r_snt <- BM[BM[,1] <= 0.05 + min(BM[,1]) & BM[,1] <= 0.5,] # Limita los nombres no parecidos
+    origen$BM <- stringdistmatrix(origen$nom_asen, dom.snt, method="jw", p = 0.1)
+    origen <- origen[origen$BM <= 0.1 + min(origen$BM),]
+    origen$BM <- stringdistmatrix(rsna(origen$nom_asen), rsna(dom.snt), method = "cosine")
+    r_snt <- origen[origen$BM <= 0.1 | (origen$BM <= 0.25 & origen$BM <=  0.01 + min(origen$BM)),] # Limita los nombres no parecidos
 
     if(length(r_snt$cve_asen) == 0)
       return(NULL)
-    
-    r_snt$BM <- as.vector(stringdistmatrix(r_snt$nom_asen, dom.snt, method="cosine"))
 
     # Obtiene las coordenadas y el radio del subconjunto
     d <- sapply(str_pad(as.character(r_snt$cve_asen), 4, pad = "0"), gcol.php)
@@ -246,9 +245,9 @@ identifica_snt <- function(dom.snt, r_loc) {
     }
     r_snt$cve <- paste(r_loc$cve, r_snt$cve, radio, sep = ",") # Clave de asentamiento
     r_snt$niv <- 3
-    r_snt$BM <- 1.0 - (1.0 - r_snt$BM) * (1.0 - r_loc$BM)
+    r_snt$BM <- 1 - (1 - r_snt$BM) * (1 - r_loc$BM / 2)
     r_snt$nombre <- paste(r_loc$nombre, r_snt$nombre, sep = ", ") # Nombre de asentamiento
-    return(r_snt)
+    return(r_snt[c("BM", "cve", "nombre", "lat", "lon", "niv")])
   }
   return(NULL)
 }
