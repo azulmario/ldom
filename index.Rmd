@@ -12,6 +12,7 @@ La información de las direcciones se tienen almacenadas en un archivo con los c
 
 Por ejemplo, para localizar el siguiente domicilio:
 ```{r, echo=FALSE, warning=FALSE}
+rm(list = ls(all = TRUE))
 source("qmaps.R", echo = FALSE)
 map.is.visible <<- TRUE
 ```
@@ -54,7 +55,7 @@ mapa
 Y finalmente el número exterior.
 
 ```{r}
-r_num <- identifica_num(dom$num, r_vld[1,])
+r_num <- identifica_num(dom$num, r_vld[r_vld$BM == min(r_vld$BM),])
 mapa
 ```
 No se utiliza el Código postal, pero es posible utilizar las entre calles o esquinas.

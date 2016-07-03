@@ -161,13 +161,13 @@ De la experiencia resultan los siguientes parámetros de configuración basado e
 ##
 Núm de procesadores asignados (CPU) | Procesadores dedicados (CPU) | Número de direcciones por localizar | Tiempo para terminar (días) | RAM para cálculo  (Gb)| RAM mínima (Gb) | RAM recomendada (Gb)
 :-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:
- 4 |  3 |   250,000 | 5.0 | 2 | 3 |  4
- 7 |  6 |   500,000 | 5.0 | 4 | 5 |  6
-13 | 12 | 1,000,000 | 5.0 | 8 | 9 | 10
-25 | 24 | 1,000,000 | 2.5 | 8 | 9 | 10
-30 | 29 | 1,000,000 | 2.1 | 8 | 9 | 10
+ 4 |  3 |   250,000 | 15 | 2 | 3 |  4
+ 7 |  6 |   500,000 | 15 | 4 | 5 |  6
+13 | 12 | 1,000,000 | 15 | 8 | 9 | 10
+25 | 24 | 1,000,000 | 7.5 | 8 | 9 | 10
+30 | 29 | 1,000,000 | 6.3 | 8 | 9 | 10
 
-Considerar como referencia que para un archivo de Excel (versión 2007 y 2010) el máximo de renglones es de 1,048,576 por pestaña.
+Considerar como referencia que para un archivo de Excel (versión 2007 y 2010) el máximo de renglones es de 1,048,576 por pestaña. Nótese que el tiempo de procesamiento depende de la viscocidad de los datos.
 
 ##
 En general, se recomienda para una máquina virtual asignarle el mayor número de procesadores posible de la máquina física, igualmente para la memoria RAM. Y dependiendo de la memoria RAM es el límite de la cantidad de direcciones que puede procesar un lote.

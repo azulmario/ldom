@@ -376,6 +376,9 @@ shinyServer(function(input, output, session) {
         file.copy("/srv/shiny-server/docs/zip/conectadb.R", "/srv/shiny-server/ldom/conectadb.R", overwrite = TRUE)
         file.copy("/srv/shiny-server/docs/zip/server.R", "/srv/shiny-server/ldom/server.R", overwrite = TRUE)
         file.copy("/srv/shiny-server/docs/zip/ui.R", "/srv/shiny-server/ldom/ui.R", overwrite = TRUE)
+        # Actualiza el reporte
+        file.copy("/srv/shiny-server/docs/zip/index.Rmd", "/srv/shiny-server/reporte/index.Rmd", overwrite = TRUE)
+        file.copy("/srv/shiny-server/docs/zip/cap2.Rmd", "/srv/shiny-server/reporte/cap2.Rmd", overwrite = TRUE)
       }
     }
   })
