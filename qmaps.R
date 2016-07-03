@@ -200,11 +200,11 @@ identifica_locurb <- function(r_mun) {
     m <- mapply(str_pad, r_mun$cve, 3, pad = "0") 
     l <- mapply(str_pad, r_loc$cve, 4, pad = "0")
 
-    if(map.is.visible && length(lat) > 0) {
+    if(map.is.visible && length(r_loc$lat) > 0) {
       hace_mapa(r_loc, 13)
     }
     r_loc$niv <- 4
-    r_loc$BM <- 1.0 - (1.0 - r_mun$BM) * (1.0 - 1e-7) 
+    r_loc$BM <- 1.0 - (1.0 - as.numeric(r_mun$BM)) * (0.9999999) 
     r_loc$cve <- paste0(m, l) # Clave de localidad
     r_loc$nombre <- paste (r_mun$nombre, r_loc$nombre, sep = ", ") # Nombre de localidad
 
@@ -377,8 +377,8 @@ identifica_ref <- function(dom.ref, r_vld) {
     lat <- as.numeric(d[1,])
     lon <- as.numeric(d[2,])
     r_ref <- data.frame(r_ref, lat, lon)
-    colnames(r_ref)[3] <- "nombre"
-    if(map.is.visible & length(lat) > 0) {
+    colnames(r_ref)[2] <- "nombre"
+    if(map.is.visible & length(r_ref$lat) > 0) {
       hace_mapa(r_ref, 17)
     }
     r_ref$niv <- 1
@@ -891,19 +891,22 @@ atomizar <- function (Ts, map = FALSE) {
   T4 <- Ts[which(Ts$niv == 4),]
   T5 <- Ts[which(Ts$niv == 5),]
   Ta <- NULL
-  if(length(T0$BM) > 0 && any(T0$BM <= 1e-07)) {
+  if(length(T0$BM) > 0 && any(T0$BM < 0.002)) {
     # Número exterior exacto
-    Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),][1,]
-  } else if(length(T1$BM) > 0 && any(T1$BM <= 1e-07)) {
-    # Promedia las coordenadas si proporciona las dos entrecalles correctamente
-    Ta <- T1[which(T1$BM <= 1e-07),]
+    Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),]
     Ta[1,]$lat <- mean(Ta$lat)
     Ta[1,]$lon <- mean(Ta$lon)
     Ta <- Ta[1,]
-  } else if(length(T2$BM) > 0 && any(T2$BM <= 1e-07)) { # Cuando hay una calle correcta
+  } else if(length(T1$BM) > 0 && any(T1$BM < 0.002)) {
+    # Promedia las coordenadas si proporciona las dos entrecalles correctamente
+    Ta <- T1[which(T1$BM == min(T1$BM, na.rm = TRUE)),]
+    Ta[1,]$lat <- mean(Ta$lat)
+    Ta[1,]$lon <- mean(Ta$lon)
+    Ta <- Ta[1,]
+  } else if(length(T2$BM) > 0 && any(T2$BM < 0.002)) { # Cuando hay una calle correcta
     if(length(T0$BM) > 0 && any(T0$BM < 0.12)) {
       # Promedia las coordenadas, si hay más de 1
-      Ta <- T0[which(T0$BM < 0.12),]
+      Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),]
       Ta[1,]$lat <- mean(Ta$lat)
       Ta[1,]$lon <- mean(Ta$lon)
       Ta <- Ta[1,]
@@ -912,27 +915,35 @@ atomizar <- function (Ts, map = FALSE) {
       # [order(T2$cve),] último Ta[length(Ta),]
       Ta <- T2[which(T2$BM == min(T2$BM, na.rm = TRUE)),][1,]
     }
-  } else if(length(T3$BM) > 0 && any(T3$BM <= 1e-07)) {
+  } else if(length(T3$BM) > 0 && any(T3$BM < 0.002)) { # Cuando la colonia es correcta
     if(length(T2$BM) > 0 && any(T2$BM < 0.1)){
-      Ta <- T2[which(T2$BM < 0.1),][1,]
-    } else {
-      # Se queda con la colonia
-      Ta <- T3[which(T3$BM <= 1e-07),][1,]
-    }
-  } else if(length(T4$BM) > 0 && any(T4$BM < 0.15)) {
-    if(length(T2$BM) > 0 && any(T2$BM < 0.1)) {
-      if(length(T0$BM) > 0 && any(T0$BM < 0.12)) {
-        Ta <- T0[which(T0$BM < 0.12),]
+      if(length(T0$BM) > 0 && any(T0$BM < 0.1)) {
+        # Promedia las coordenadas, si hay más de 1
+        Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),]
         Ta[1,]$lat <- mean(Ta$lat)
         Ta[1,]$lon <- mean(Ta$lon)
         Ta <- Ta[1,]
       } else {
-        Ta <- T2[which(T2$BM < 0.1),][1,]
+        Ta <- T2[which(T2$BM == min(T2$BM, na.rm = TRUE)),][1,]
+      }
+    } else {
+      # Se queda con la colonia
+      Ta <- T3[which(T3$BM == min(T3$BM, na.rm = TRUE)),][1,]
+    }
+  } else if(length(T4$BM) > 0 && any(T4$BM < 0.15)) { # Si ninguna de las anteriores.
+    if(length(T2$BM) > 0 && any(T2$BM < 0.1)) {
+      if(length(T0$BM) > 0 && any(T0$BM < 0.12)) {
+        Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),]
+        Ta[1,]$lat <- mean(Ta$lat)
+        Ta[1,]$lon <- mean(Ta$lon)
+        Ta <- Ta[1,]
+      } else {
+        Ta <- T2[which(T2$BM == min(T2$BM, na.rm = TRUE)),][1,]
       }
     } else if(length(T3$BM) > 0 && any(T3$BM < 0.1)) {
-      Ta <- T3[which(T3$BM < 0.1),][1,]
+      Ta <- T3[which(T3$BM == min(T3$BM, na.rm = TRUE)),][1,]
     } else {
-      Ta <- T4[which(T4$BM < 0.15),][1,]
+      Ta <- T4[which(T4$BM == min(T4$BM, na.rm = TRUE)),][1,]
     }
   }
   if(is.null(Ta)) {
