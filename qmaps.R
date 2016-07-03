@@ -113,24 +113,20 @@ identifica_loc <- function(dom.loc, r_mun) {
   origen <- list_loc(r_mun$cve)
 
   if(length(origen$nombre) > 0) {
-    BM <- stringdistmatrix(origen$nombre, dom.loc, method="jw", p = 0.1)
-    BM <- cbind(BM,origen)
-    r_loc <- BM[BM[,1] <= 0.05 + min(BM[,1]),]
-
-    # Hace una corrección cuando el nombre buscado es
-    # un subconjunto del nombre de catálogo
-    # ejemplo: buscando "COPALILLO" encuentra "EL COPALILLO"
-    r_loc$BM <- as.vector(stringdistmatrix(r_loc$nombre, dom.loc, method="cosine"))
+    origen$BM <- stringdistmatrix(origen$nombre, dom.loc, method="jw", p = 0.1)
+    origen <- origen[origen$BM <= 0.1 + min(origen$BM),]
+    origen$BM <- stringdistmatrix(rsna(origen$nombre), rsna(dom.loc), method = "cosine")
+    r_loc <- origen[origen$BM <= 0.1 | origen$BM <=  0.01 + min(origen$BM),] # Obtiene el mínimo
 
     if(map.is.visible & length(r_loc$lat) > 0) {
       hace_mapa(r_loc, 13)
     }
     r_loc$niv <- 4
-    r_loc$BM <- 1.0 - (1.0 - r_loc$BM) * (1.0 - r_mun$BM) # Teorema de Bayes
+    r_loc$BM <- 1 - (1 - r_loc$BM) * (1 - r_mun$BM / 2) # Teorema de Bayes
     r_loc$nombre <- paste (r_mun$nombre, r_loc$nombre, sep = ", ") # Nombre de localidad
     r_loc$cve <- paste0(r_mun$cve, r_loc$cve) # Clave de localidad
 
-    return(r_loc)
+    return(r_loc[,c("BM","cve","nombre","lat","lon","niv")])
   } else {
     return(NULL)
   }
