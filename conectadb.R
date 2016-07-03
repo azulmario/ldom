@@ -68,14 +68,10 @@ cal2.php <- function(m = "015", l = "0001") {
 
 #Número exterior
 #Incorpora calles homónimas
-#Se corrige, intercamniando las claves por la clave única.
+#Se corrige, intercambiando las claves por la clave única.
 num.php <- function(c = "27000101583") {
   dbconn <- odbcConnect("local")
-  d <- sqlQuery(dbconn, paste0(
-    "(SELECT lat, lon, num FROM geocode1 WHERE cve_via IN ",
-    "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, ")) UNION ",
-    "(SELECT lat, lon, num FROM geocode0 WHERE cve_via IN ",
-    "(SELECT via_unica FROM vialidad WHERE cve_via = ", c, "));"))
+  d <- sqlQuery(dbconn, paste0("(SELECT lat, lon, num FROM geocode1 WHERE cve_via IN (SELECT via_unica FROM vialidad WHERE cve_via = ", c, "));"))
   odbcClose(dbconn)
   d
 }

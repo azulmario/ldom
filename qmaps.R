@@ -394,32 +394,30 @@ identifica_num <- function (dom.num, r_vld) {
     return(NULL)
   }
 
-  origen <- num.php (c = r_vld$cve)
+  origen <- num.php(c = r_vld$cve)
   origen$num <- limpieza0(origen$num)
   origen <- origen[complete.cases(origen),]
 
   if(length(origen$num) > 0) {
-    BM <- 2*pnorm(sqrt(2)*(abs(origen$num-dom.num)/50))-1
-    BM <- cbind(BM, origen)
+    origen$BM <- 2*pnorm(sqrt(2)*(abs(origen$num-dom.num)/50))-1
+    r_num <- origen[origen$BM <= 0.12 & origen$BM ==  min(origen$BM),]
+    
+    if(length(r_num$BM) == 0)
+      return(NULL)
 
     # Regrese el más cercano
     # o pares cuando no sea exácto
     # excluye a los números muy alejados
-    minBM <- min(BM[,1])
-    if(minBM > 0.5)
-      return(NULL)
-    r_num <- BM[BM[,1] <= minBM,]
 
-    r_num <- cbind(r_vld$cve, r_num)
+    r_num$cve <- r_vld$cve
     r_num$num <- as.character(r_num$num)
-    colnames(r_num)[1] <- "cve"
-    colnames(r_num)[5] <- "nombre"
+    colnames(r_num)[3] <- "nombre"
     if(map.is.visible & length(r_num$lat) > 0) {
       hace_mapa(r_num, 18)
     }
     r_num$niv <- 0
-    r_num$BM <- 1.0 - (1.0 - r_num$BM) * (1.0 - r_vld$BM)
-    r_num$cve <- paste(r_num$cve, r_num$nombre, sep = "-") # Clave
+    r_num$BM <- 1 - (1 - r_num$BM) * (1 - r_vld$BM / 2)
+    r_num$cve <- paste(r_num$cve, r_num$nombre, sep = "#") # Clave
     r_num$nombre <- paste(r_vld$nombre, r_num$nombre, sep = " #") # Dirección
 
     return(r_num[,c("BM","cve","nombre","lat","lon","niv")])
