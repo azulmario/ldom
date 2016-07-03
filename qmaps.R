@@ -56,17 +56,16 @@ identifica_mun <- function(dom.mun) {
 
   # Calcula distancias
   # 0 <= p <= 0.25
-  BM <- stringdistmatrix(origen$nombre, dom.mun, method="jw", p = 0.1)
-  BM <- cbind(BM,origen) # Pega los datos
-  r_mun <- BM[BM[,1] <= 0.05 + min(BM[,1]),] # Obtiene el mínimo
+  origen$BM <- stringdistmatrix(origen$nombre, dom.mun, method="jw", p = 0.1)
+  origen <- origen[origen$BM <= 0.1 + min(origen$BM),]
+  origen$BM <- stringdistmatrix(rsna(origen$nombre), rsna(dom.mun), method = "cosine")
+  r_mun <- origen[origen$BM <= 0.1 | origen$BM <=  0.01 + min(origen$BM),] # Obtiene el mínimo
 
-  r_mun$BM <- as.vector(stringdistmatrix(r_mun$nombre, dom.mun, method="cosine"))
-  
   if(map.is.visible) {
     hace_mapa(r_mun, 11)
   }
   r_mun$niv <- 5
-  return(r_mun)
+  return(r_mun[,c("BM","cve","nombre","lat","lon","niv")])
 }
 
 # Manejo de cache para el listado de localidades de cada municipio
