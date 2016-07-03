@@ -116,8 +116,11 @@ identifica_loc <- function(dom.loc, r_mun) {
     origen$BM <- stringdistmatrix(origen$nombre, dom.loc, method="jw", p = 0.1)
     origen <- origen[origen$BM <= 0.1 + min(origen$BM),]
     origen$BM <- stringdistmatrix(rsna(origen$nombre), rsna(dom.loc), method = "cosine")
-    r_loc <- origen[origen$BM <= 0.1 | origen$BM <=  0.01 + min(origen$BM),] # Obtiene el mínimo
+    r_loc <- origen[origen$BM <= 0.1 | (origen$BM <= 0.25 & origen$BM <=  0.01 + min(origen$BM)),] # Obtiene el mínimo
 
+    if(length(r_loc$BM) == 0)
+      return(NULL)
+    
     if(map.is.visible & length(r_loc$lat) > 0) {
       hace_mapa(r_loc, 13)
     }
@@ -318,8 +321,11 @@ identifica_vld <- function(dom.vld, r_loc, r_snt = NULL, tipo = TRUE) {
     origen$B <- stringdistmatrix(rsna(origen$nom_via), rsna(dom.vld), method="cosine")
     origen$M <- stringdistmatrix(rsna(origen$nom_via0), rsna(dom.vld), method="cosine")
     origen$BM <- pmin(origen$B, 0.001 + origen$M)
-    r_vld <- origen[origen$BM <= 0.1 | origen$BM <=  0.01 + min(origen$BM),]
+    r_vld <- origen[origen$BM <= 0.1 | (origen$BM <= 0.25 & origen$BM <=  0.01 + min(origen$BM)),]
 
+    if(length(r_vld$BM) == 0)
+      return(NULL)
+    
     colnames(r_vld)[1] <- "cve"
     colnames(r_vld)[2] <- "nombre"
     if(map.is.visible & length(r_vld$lat) > 0 && !is.na(r_vld$lat)) {
