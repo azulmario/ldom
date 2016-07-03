@@ -904,9 +904,15 @@ atomizar <- function (Ts, map = FALSE) {
     Ta[1,]$lon <- mean(Ta$lon)
     Ta <- Ta[1,]
   } else if(length(T2$BM) > 0 && any(T2$BM < 0.002)) { # Cuando hay una calle correcta
-    if(length(T0$BM) > 0 && any(T0$BM < 0.12)) {
+    if(length(T0$BM) > 0 && any(T0$BM < 0.05)) {
       # Promedia las coordenadas, si hay más de 1
       Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),]
+      Ta[1,]$lat <- mean(Ta$lat)
+      Ta[1,]$lon <- mean(Ta$lon)
+      Ta <- Ta[1,]
+    } else if(length(T1$BM) > 0 && any(T1$BM < 0.05)) {
+      # Promedia las coordenadas si proporciona las dos entrecalles correctamente
+      Ta <- T1[which(T1$BM == min(T1$BM, na.rm = TRUE)),]
       Ta[1,]$lat <- mean(Ta$lat)
       Ta[1,]$lon <- mean(Ta$lon)
       Ta <- Ta[1,]
@@ -916,10 +922,16 @@ atomizar <- function (Ts, map = FALSE) {
       Ta <- T2[which(T2$BM == min(T2$BM, na.rm = TRUE)),][1,]
     }
   } else if(length(T3$BM) > 0 && any(T3$BM < 0.002)) { # Cuando la colonia es correcta
-    if(length(T2$BM) > 0 && any(T2$BM < 0.1)){
+    if(length(T2$BM) > 0 && any(T2$BM < 0.05)) {
       if(length(T0$BM) > 0 && any(T0$BM < 0.1)) {
         # Promedia las coordenadas, si hay más de 1
         Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),]
+        Ta[1,]$lat <- mean(Ta$lat)
+        Ta[1,]$lon <- mean(Ta$lon)
+        Ta <- Ta[1,]
+      } else if(length(T1$BM) > 0 && any(T1$BM < 0.1)) {
+        # Promedia las coordenadas si proporciona las dos entrecalles correctamente
+        Ta <- T1[which(T1$BM == min(T1$BM, na.rm = TRUE)),]
         Ta[1,]$lat <- mean(Ta$lat)
         Ta[1,]$lon <- mean(Ta$lon)
         Ta <- Ta[1,]
@@ -930,22 +942,94 @@ atomizar <- function (Ts, map = FALSE) {
       # Se queda con la colonia
       Ta <- T3[which(T3$BM == min(T3$BM, na.rm = TRUE)),][1,]
     }
-  } else if(length(T4$BM) > 0 && any(T4$BM < 0.15)) { # Si ninguna de las anteriores.
-    if(length(T2$BM) > 0 && any(T2$BM < 0.1)) {
-      if(length(T0$BM) > 0 && any(T0$BM < 0.12)) {
-        Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),]
-        Ta[1,]$lat <- mean(Ta$lat)
-        Ta[1,]$lon <- mean(Ta$lon)
-        Ta <- Ta[1,]
+  } else if(length(T4$BM) > 0 && any(T4$BM < 0.002)) { # Si es localidad.
+    if(length(T3$BM) > 0 && any(T3$BM < 0.05)) { # Cuando la colonia es correcta
+      if(length(T2$BM) > 0 && any(T2$BM < 0.1)) {
+        if(length(T0$BM) > 0 && any(T0$BM < 0.12)) {
+          # Promedia las coordenadas, si hay más de 1
+          Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),]
+          Ta[1,]$lat <- mean(Ta$lat)
+          Ta[1,]$lon <- mean(Ta$lon)
+          Ta <- Ta[1,]
+        } else if(length(T1$BM) > 0 && any(T1$BM < 0.12)) {
+          # Promedia las coordenadas si proporciona las dos entrecalles correctamente
+          Ta <- T1[which(T1$BM == min(T1$BM, na.rm = TRUE)),]
+          Ta[1,]$lat <- mean(Ta$lat)
+          Ta[1,]$lon <- mean(Ta$lon)
+          Ta <- Ta[1,]
+        } else {
+          Ta <- T2[which(T2$BM == min(T2$BM, na.rm = TRUE)),][1,]
+        }
+      } else if(length(T2$BM) > 0 && any(T2$BM < 0.1)) {
+        if(length(T0$BM) > 0 && any(T0$BM < 0.12)) {
+          # Promedia las coordenadas, si hay más de 1
+          Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),]
+          Ta[1,]$lat <- mean(Ta$lat)
+          Ta[1,]$lon <- mean(Ta$lon)
+          Ta <- Ta[1,]
+        } else if(length(T1$BM) > 0 && any(T1$BM < 0.12)) {
+          # Promedia las coordenadas si proporciona las dos entrecalles correctamente
+          Ta <- T1[which(T1$BM == min(T1$BM, na.rm = TRUE)),]
+          Ta[1,]$lat <- mean(Ta$lat)
+          Ta[1,]$lon <- mean(Ta$lon)
+          Ta <- Ta[1,]
+        } else {
+          Ta <- T2[which(T2$BM == min(T2$BM, na.rm = TRUE)),][1,]
+        }
       } else {
-        Ta <- T2[which(T2$BM == min(T2$BM, na.rm = TRUE)),][1,]
+        # Se queda con la colonia
+        Ta <- T3[which(T3$BM == min(T3$BM, na.rm = TRUE)),][1,]
       }
-    } else if(length(T3$BM) > 0 && any(T3$BM < 0.1)) {
-      Ta <- T3[which(T3$BM == min(T3$BM, na.rm = TRUE)),][1,]
     } else {
       Ta <- T4[which(T4$BM == min(T4$BM, na.rm = TRUE)),][1,]
     }
+  } else if(length(T5$BM) > 0 && any(T5$BM < 0.1)) { # Si ninguna de las anteriores
+    if(length(T4$BM) > 0 && any(T4$BM < 0.1)) { # Si es localidad.
+      if(length(T3$BM) > 0 && any(T3$BM < 0.1)) { # Cuando la colonia es correcta
+        if(length(T2$BM) > 0 && any(T2$BM < 0.12)) {
+          if(length(T0$BM) > 0 && any(T0$BM < 0.15)) {
+            # Promedia las coordenadas, si hay más de 1
+            Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),]
+            Ta[1,]$lat <- mean(Ta$lat)
+            Ta[1,]$lon <- mean(Ta$lon)
+            Ta <- Ta[1,]
+          } else if(length(T1$BM) > 0 && any(T1$BM < 0.15)) {
+            # Promedia las coordenadas si proporciona las dos entrecalles correctamente
+            Ta <- T1[which(T1$BM == min(T1$BM, na.rm = TRUE)),]
+            Ta[1,]$lat <- mean(Ta$lat)
+            Ta[1,]$lon <- mean(Ta$lon)
+            Ta <- Ta[1,]
+          } else {
+            Ta <- T2[which(T2$BM == min(T2$BM, na.rm = TRUE)),][1,]
+          }
+        } else {
+          # Se queda con la colonia
+          Ta <- T3[which(T3$BM == min(T3$BM, na.rm = TRUE)),][1,]
+        }
+      } else if(length(T2$BM) > 0 && any(T2$BM < 0.12)) {
+        if(length(T0$BM) > 0 && any(T0$BM < 0.15)) {
+          # Promedia las coordenadas, si hay más de 1
+          Ta <- T0[which(T0$BM == min(T0$BM, na.rm = TRUE)),]
+          Ta[1,]$lat <- mean(Ta$lat)
+          Ta[1,]$lon <- mean(Ta$lon)
+          Ta <- Ta[1,]
+        } else if(length(T1$BM) > 0 && any(T1$BM < 0.15)) {
+          # Promedia las coordenadas si proporciona las dos entrecalles correctamente
+          Ta <- T1[which(T1$BM == min(T1$BM, na.rm = TRUE)),]
+          Ta[1,]$lat <- mean(Ta$lat)
+          Ta[1,]$lon <- mean(Ta$lon)
+          Ta <- Ta[1,]
+        } else {
+          Ta <- T2[which(T2$BM == min(T2$BM, na.rm = TRUE)),][1,]
+        }
+      } else {
+        Ta <- T4[which(T4$BM == min(T4$BM, na.rm = TRUE)),][1,]
+      }
+    } else {
+      Ta <- T5[which(T5$BM == min(T5$BM, na.rm = TRUE)),][1,]
+    }
   }
+
   if(is.null(Ta)) {
     Ta <- data.frame(niv = -1, BM = 0, cve = 0, nombre = 0, lat = 0, lon = 0)
   } else if(map) {
