@@ -1123,6 +1123,22 @@ lee <- function(path, sheet = 1, iforder = TRUE, ifcompact = TRUE) {
       vars <- c(vars, "CP")
     
     matricula <- matricula[,vars]
+  } else {
+    alcanc1 <- list(niv = "niv" %in% colnames(matricula), BM = "BM" %in% colnames(matricula),
+                      cve = "cve" %in% colnames(matricula), ntd = "ntd" %in% colnames(matricula), 
+                      lat = "lat" %in% colnames(matricula), lon = "lon" %in% colnames(matricula))
+    if(alcanc1$niv)
+      colnames(matricula)[colnames(matricula)=="niv"] <- "niv_0"
+    if(alcanc1$BM)
+      colnames(matricula)[colnames(matricula)=="BM"] <- "BM_0"
+    if(alcanc1$cve)
+      colnames(matricula)[colnames(matricula)=="cve"] <- "cve_0"
+    if(alcanc1$ntd)
+      colnames(matricula)[colnames(matricula)=="ntd"] <- "ntd_0"
+    if(alcanc1$lat)
+      colnames(matricula)[colnames(matricula)=="lat"] <- "lat_0"
+    if(alcanc1$lon)
+      colnames(matricula)[colnames(matricula)=="lon"] <- "lon_0"
   }
   # Quita los renglones vacíos, basado en el campo municipio
   matricula <- matricula[which(!is.na(matricula$mun)),]
@@ -1220,12 +1236,17 @@ main <- function (path, sheet = 1, file, id = 0, paralelo = TRUE, seguimiento = 
   rm(matricula)
   
   # Cambia el campo 'nombre' por 'ntd', para no interferir con otro
-  colnames(res)[4] <- "ntd"  
+  colnames(res)[4] <- "ntd"
+
+  # Redondea las coordenadas de entrada
+  res$BM <- round(res$BM, 5)
+  res$lat <- round(res$lat, 5)
+  res$lon <- round(res$lon, 5)
 
   # Carda padron
   padron <- NULL
   while (is.null(padron)) try(padron <- feather::read_feather(paste0(path, ".dat")), TRUE)
-  
+
   # Guarda en el sentido en el que fue generado (orden lógico)
   # Intercambia el orden de las columnas
   padron <- merge(padron, res[c(7, 1:6)], by = "n")
