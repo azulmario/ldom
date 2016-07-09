@@ -521,6 +521,7 @@ abrev_mun <- function(tw) {
   if(tw == "ALLENDE") tw <- "SAN MIGUEL DE ALLENDE"
   if(tw == "SAN MIGUEL") tw <- "SAN MIGUEL DE ALLENDE"
   if(tw == "DOLORES HIDALGO") tw <- "DOLORES HIDALGO C I N"
+  if(tw == "DOLORES HIDALGO CUNA DE LA INDEPENDENCIA NACIONAL") tw <- "DOLORES HIDALGO C I N"
   tw
 }
 

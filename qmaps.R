@@ -65,6 +65,7 @@ identifica_mun <- function(dom.mun) {
     hace_mapa(r_mun, 11)
   }
   r_mun$niv <- 5
+  r_mun$BM <- as.numeric(r_mun$BM) * as.numeric(r_mun$BM)
   return(r_mun[,c("BM","cve","nombre","lat","lon","niv")])
 }
 
@@ -128,7 +129,7 @@ identifica_loc <- function(dom.loc, r_mun) {
     r_loc$BM <- 1 - (1 - r_loc$BM) * (1 - as.numeric(r_mun$BM)) # Teorema de Bayes
     r_loc$nombre <- paste (r_mun$nombre, r_loc$nombre, sep = ", ") # Nombre de localidad
     r_loc$cve <- paste0(r_mun$cve, r_loc$cve) # Clave de localidad
-
+    r_loc$BM <- as.numeric(r_loc$BM)
     return(r_loc[,c("BM","cve","nombre","lat","lon","niv")])
   } else {
     return(NULL)
@@ -207,7 +208,7 @@ identifica_locurb <- function(r_mun) {
     r_loc$BM <- 1.0 - (1.0 - as.numeric(r_mun$BM)) * (0.9999999) 
     r_loc$cve <- paste0(m, l) # Clave de localidad
     r_loc$nombre <- paste (r_mun$nombre, r_loc$nombre, sep = ", ") # Nombre de localidad
-
+    r_loc$BM <- as.numeric(r_loc$BM)
     return(r_loc[c("BM", "cve", "nombre", "lat", "lon", "niv")])
   } else {
     return(NULL)
@@ -250,6 +251,7 @@ identifica_snt <- function(dom.snt, r_loc) {
     r_snt$niv <- 3
     r_snt$BM <- 1 - (1 - r_snt$BM) * (1 - as.numeric(r_loc$BM))
     r_snt$nombre <- paste(r_loc$nombre, r_snt$nombre, sep = ", ") # Nombre de asentamiento
+    r_snt$BM <- as.numeric(r_snt$BM)
     return(r_snt[c("BM", "cve", "nombre", "lat", "lon", "niv")])
   }
   return(NULL)
@@ -345,7 +347,7 @@ identifica_vld <- function(dom.vld, r_loc, r_snt = NULL, tipo = TRUE) {
     r_vld$nombre <- gsub(", , ", ", ", r_vld$nombre)
     r_vld$nombre <- paste0(r_vld$nombre, r_vld$apx)
     r_vld$cve <- mapply(str_pad, r_vld$cve, 12, pad = "0")
-
+    r_vld$BM <- as.numeric(r_vld$BM)
     return(r_vld[,c("BM","cve","nombre","lat","lon","niv")])
   } else {
     return(NULL)
@@ -385,6 +387,7 @@ identifica_ref <- function(dom.ref, r_vld) {
     r_ref$BM <- 1 - (1 - r_ref$BM) * (1 - as.numeric(r_vld$BM))
     r_ref$nombre <- paste(r_vld$nombre, r_ref$nombre, sep = " Y ")
     r_ref$cve <- paste(r_vld$cve, r_ref$cve, sep = "x")
+    r_ref$BM <- as.numeric(r_ref$BM)
     return(r_ref[,c("BM","cve","nombre","lat","lon","niv")])
   } else {
     return(NULL)
@@ -425,7 +428,7 @@ identifica_num <- function (dom.num, r_vld) {
     r_num$BM <- 1 - (1 - r_num$BM) * (1 - as.numeric(r_vld$BM))
     r_num$cve <- paste(r_num$cve, r_num$nombre, sep = "#") # Clave
     r_num$nombre <- paste(r_vld$nombre, r_num$nombre, sep = " #") # Dirección
-
+    r_num$BM <- as.numeric(r_num$BM)
     return(r_num[,c("BM","cve","nombre","lat","lon","niv")])
   } else {
     return(NULL)
