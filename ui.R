@@ -53,7 +53,7 @@ shinyUI(fluidPage(
         a(href = '../reporte', '/reporte.', target='_blank')),
       "Sesiones actualmente abiertas de esta aplicación:", 
       verbatimTextOutput("count"),
-      p('Versión 20160703'),
+      p('Versión 20160708'),
       textOutput("currentTime")
     ),
     mainPanel(
