@@ -294,7 +294,7 @@ shinyServer(function(input, output, session) {
       res <- NULL # @error en read_feather: SET_STRING_ELT() can only be applied to a 'character vector', not a 'raw'
       while (is.null(res)) try(res <- feather::read_feather(paste0(as.character(lee.ldom.php()[s,]$file_out), ".dat")), TRUE)
       if (nrow(res) > 0) {
-        res$Nivel <- factor(res$niv, levels = c(0, 1, 2, 3, 4, -1, -2), labels = c("Número exterior", "Entrecalle", "Calle", "Colonia", "Localidad", "No localizada", "Bug"))
+        res$Nivel <- factor(res$niv, levels = c(0, 1, 2, 3, 4, 5, -1, -2), labels = c("Número exterior", "Entrecalle", "Calle", "Colonia", "Localidad", "Municipio", "No localizada", "Bug"))
         res$Direcciones <- 1
         #res$rurb <- rbinom(length(res$n),1,.5)
         #res$rurb <- factor(res$rurb, levels = c(0, 1), labels = c("Rural", "Urbano") )
